@@ -1,0 +1,1875 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Monitoring Sambungan Langsung (SL)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS (XLSX & CSV) CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f051d; }
+        ::-webkit-scrollbar-thumb { background: #2e1065; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4c1d95; }
+
+        .bg-card-gradient {
+            background: linear-gradient(145deg, rgba(34, 9, 71, 0.85) 0%, rgba(15, 5, 29, 0.95) 100%);
+        }
+        .bg-navbar-gradient {
+            background: linear-gradient(90deg, #0f051d 0%, #1e1b4b 50%, #2e1065 100%);
+        }
+        .text-gradient-purple {
+            background: linear-gradient(135deg, #c084fc 0%, #e879f9 50%, #f472b6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin-sync {
+            animation: spin-slow 1s linear infinite;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col antialiased text-slate-200 bg-[#0f051d] min-h-screen">
+
+    <!-- TOP NAVBAR -->
+    <header class="bg-navbar-gradient text-white sticky top-0 z-30 shadow-lg border-b border-purple-950/80 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-gradient-to-tr from-purple-600 via-violet-600 to-fuchsia-600 p-2.5 rounded-xl text-white shadow-lg shadow-purple-900/40">
+                        <i data-lucide="droplet" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                            <span class="text-gradient-purple">MONITORING RENCANA KERJA SL</span>
+                            <span class="text-xs bg-purple-950 text-purple-300 border border-purple-800/50 px-2 py-0.5 rounded-full font-medium">v3.2 Google Sheets Live</span>
+                        </h1>
+                        <p class="text-xs text-purple-300/70">Sistem Pengawasan Sambungan Rumah Air Minum</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2 sm:space-x-3">
+                    <div class="hidden lg:flex flex-col text-right mr-1">
+                        <span class="text-[11px] text-purple-300/70 flex items-center justify-end gap-1">
+                            <i data-lucide="cloud" class="w-3 h-3 text-emerald-400"></i> Status Sinkronisasi:
+                        </span>
+                        <span id="lastUpdateText" class="text-xs font-semibold text-purple-300">Menunggu sinkronisasi...</span>
+                    </div>
+
+                    <!-- TOMBOL SYNC GOOGLE SHEETS -->
+                    <button onclick="syncFromGoogleSheets(true)" id="btnSyncCloud" title="Sinkronkan ulang dari Google Sheets" class="flex items-center gap-2 bg-emerald-700/80 hover:bg-emerald-600 text-white text-xs sm:text-sm font-medium px-3 py-2 rounded-lg transition-all shadow-md shadow-emerald-900/30 border border-emerald-400/30 active:scale-95">
+                        <i data-lucide="refresh-cw" id="iconSyncCloud" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Sync Sheets</span>
+                    </button>
+
+                    <!-- TOMBOL PENGATURAN URL SPREADSHEET -->
+                    <button onclick="openSheetConfigModal()" title="Pengaturan Tautan Google Sheets" class="flex items-center justify-center bg-purple-950/90 hover:bg-purple-900 text-purple-300 text-xs p-2 rounded-lg transition-all border border-purple-800/60 active:scale-95">
+                        <i data-lucide="settings" class="w-4 h-4"></i>
+                    </button>
+
+                    <button onclick="openUploadModal()" class="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white text-xs sm:text-sm font-medium px-3 py-2 rounded-lg transition-all shadow-md shadow-purple-900/40 active:scale-95 border border-purple-400/20">
+                        <i data-lucide="file-up" class="w-4 h-4"></i>
+                        <span class="hidden md:inline">Upload Excel</span>
+                    </button>
+
+                    <button onclick="exportDataToExcel()" class="flex items-center gap-2 bg-violet-800/80 hover:bg-violet-700 text-white text-xs sm:text-sm font-medium px-3 py-2 rounded-lg transition-all shadow-md shadow-violet-900/30 border border-violet-400/20 active:scale-95">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span class="hidden md:inline">Export</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- STATUS BANNER NOTIFIKASI SYNC -->
+    <div id="syncStatusBanner" class="hidden bg-purple-950/90 border-b border-purple-800/60 text-xs py-2 px-4 text-center text-purple-200 flex items-center justify-center gap-2">
+        <i data-lucide="info" class="w-4 h-4 text-purple-400"></i>
+        <span id="syncStatusBannerText">Menghubungkan ke Google Sheets...</span>
+    </div>
+
+    <!-- NAVIGATION TABS -->
+    <nav class="bg-[#170b2c]/90 border-b border-purple-950 shadow-md sticky top-16 z-20 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex space-x-2 sm:space-x-8 overflow-x-auto no-scrollbar py-2 sm:py-0">
+                <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn active inline-flex items-center gap-2 py-3 px-3 border-b-2 border-purple-500 font-semibold text-sm text-purple-300 whitespace-nowrap transition-colors">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard Utama
+                </button>
+                <button onclick="switchTab('table')" id="tab-table" class="tab-btn inline-flex items-center gap-2 py-3 px-3 border-b-2 border-transparent font-medium text-sm text-slate-400 hover:text-slate-200 hover:border-purple-800 whitespace-nowrap transition-colors">
+                    <i data-lucide="table" class="w-4 h-4"></i> Data Monitoring SR
+                    <span id="badgeTotalRecords" class="bg-purple-950 text-purple-300 border border-purple-900/60 text-xs px-2 py-0.5 rounded-full font-semibold">0</span>
+                </button>
+                <button onclick="switchTab('subkon')" id="tab-subkon" class="tab-btn inline-flex items-center gap-2 py-3 px-3 border-b-2 border-transparent font-medium text-sm text-slate-400 hover:text-slate-200 hover:border-purple-800 whitespace-nowrap transition-colors">
+                    <i data-lucide="users" class="w-4 h-4"></i> Performa Subkon
+                </button>
+                <button onclick="switchTab('kendala')" id="tab-kendala" class="tab-btn inline-flex items-center gap-2 py-3 px-3 border-b-2 border-transparent font-medium text-sm text-slate-400 hover:text-slate-200 hover:border-purple-800 whitespace-nowrap transition-colors">
+                    <i data-lucide="alert-circle" class="w-4 h-4"></i> Manajemen Kendala & Alasan Gagal
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- GLOBAL FILTER CONTAINER -->
+        <section class="bg-[#170b2c]/80 backdrop-blur-md rounded-xl shadow-2xl border border-purple-900/40 p-4 transition-all">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-3 border-b border-purple-950 pb-3">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="filter" class="w-4 h-4 text-purple-400"></i>
+                    <h2 class="text-sm font-semibold text-slate-200">Filter & Pencarian Data</h2>
+                </div>
+                <button onclick="resetFilters()" class="text-xs text-purple-300/70 hover:text-purple-300 flex items-center gap-1 transition-colors font-medium">
+                    <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Reset Filter
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div class="relative sm:col-span-2 lg:col-span-1">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="search" class="w-4 h-4 text-purple-400/60"></i>
+                    </div>
+                    <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Cari FA ID, Pelanggan, Alamat..." class="pl-9 w-full rounded-lg border-purple-900/50 text-xs bg-[#0f051d]/90 text-slate-200 placeholder-purple-300/40 focus:bg-[#0f051d] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-2 border transition-all">
+                </div>
+
+                <div>
+                    <select id="filterSubkon" onchange="applyFilters()" class="w-full rounded-lg border-purple-900/50 text-xs bg-[#0f051d]/90 text-slate-200 focus:bg-[#0f051d] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-2 border transition-all">
+                        <option value="">Semua Subkon</option>
+                    </select>
+                </div>
+
+                <div>
+                    <select id="filterKelurahan" onchange="applyFilters()" class="w-full rounded-lg border-purple-900/50 text-xs bg-[#0f051d]/90 text-slate-200 focus:bg-[#0f051d] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-2 border transition-all">
+                        <option value="">Semua Kelurahan</option>
+                    </select>
+                </div>
+
+                <div>
+                    <select id="filterStatus" onchange="applyFilters()" class="w-full rounded-lg border-purple-900/50 text-xs bg-[#0f051d]/90 text-slate-200 focus:bg-[#0f051d] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-2 border transition-all">
+                        <option value="">Semua Status Pekerjaan</option>
+                        <option value="DONE">DONE (Selesai)</option>
+                        <option value="PENDING">PENDING (Proses/Belum)</option>
+                        <option value="CANCEL">CANCEL (Batal)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <select id="filterJenisPekerjaan" onchange="applyFilters()" class="w-full rounded-lg border-purple-900/50 text-xs bg-[#0f051d]/90 text-slate-200 focus:bg-[#0f051d] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-2 border transition-all">
+                        <option value="">Semua Jenis Pekerjaan</option>
+                    </select>
+                </div>
+
+                <div>
+                    <select id="filterAB" onchange="applyFilters()" class="w-full rounded-lg border-purple-900/50 text-xs bg-[#0f051d]/90 text-slate-200 focus:bg-[#0f051d] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-2 border transition-all">
+                        <option value="">Semua AB</option>
+                    </select>
+                </div>
+
+                <div class="sm:col-span-2 lg:col-span-2 flex gap-2 items-center">
+                    <input type="date" id="filterTglMulai" onchange="applyFilters()" class="w-full rounded-lg border-purple-900/50 text-xs bg-[#0f051d]/90 text-slate-200 focus:bg-[#0f051d] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-2 border">
+                    <span class="text-xs text-purple-300/60">s/d</span>
+                    <input type="date" id="filterTglSelesai" onchange="applyFilters()" class="w-full rounded-lg border-purple-900/50 text-xs bg-[#0f051d]/90 text-slate-200 focus:bg-[#0f051d] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-2 border">
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 1: DASHBOARD UTAMA -->
+        <div id="view-dashboard" class="space-y-6">
+            <!-- KPI CARDS GRID -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div class="bg-card-gradient p-4 rounded-xl shadow-lg border border-purple-900/40 flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-purple-300/80 mb-2">
+                        <span class="text-xs font-semibold uppercase tracking-wider">Total SR</span>
+                        <div class="p-2 bg-purple-950 text-purple-300 border border-purple-800/50 rounded-lg">
+                            <i data-lucide="layers" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <div id="kpiTotal" class="text-2xl font-bold text-white">0</div>
+                        <p class="text-[10px] text-purple-300/60 mt-1">Target Sambungan</p>
+                    </div>
+                </div>
+
+                <div class="bg-card-gradient p-4 rounded-xl shadow-lg border border-purple-900/40 flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-purple-300 mb-2">
+                        <span class="text-xs font-semibold uppercase tracking-wider">Done</span>
+                        <div class="p-2 bg-purple-950/80 text-purple-300 border border-purple-800/50 rounded-lg">
+                            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <div id="kpiDone" class="text-2xl font-bold text-purple-300">0</div>
+                        <p class="text-[10px] text-purple-300/70 mt-1">Pekerjaan Selesai</p>
+                    </div>
+                </div>
+
+                <div class="bg-card-gradient p-4 rounded-xl shadow-lg border border-purple-900/40 flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-purple-300 mb-2">
+                        <span class="text-xs font-semibold uppercase tracking-wider">Pending</span>
+                        <div class="p-2 bg-purple-950/80 text-purple-300 border border-purple-800/50 rounded-lg">
+                            <i data-lucide="clock" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <div id="kpiPending" class="text-2xl font-bold text-purple-300">0</div>
+                        <p class="text-[10px] text-purple-300/70 mt-1">Dalam Proses</p>
+                    </div>
+                </div>
+
+                <div class="bg-card-gradient p-4 rounded-xl shadow-lg border border-purple-900/40 flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-purple-300/80 mb-2">
+                        <span class="text-xs font-semibold uppercase tracking-wider">Cancel</span>
+                        <div class="p-2 bg-purple-950/80 text-purple-300/80 border border-purple-800/50 rounded-lg">
+                            <i data-lucide="x-circle" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <div id="kpiCancel" class="text-2xl font-bold text-purple-200">0</div>
+                        <p class="text-[10px] text-purple-300/60 mt-1">Dibatalkan</p>
+                    </div>
+                </div>
+
+                <div class="bg-card-gradient p-4 rounded-xl shadow-lg border border-purple-900/40 flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-purple-300 mb-2">
+                        <span class="text-xs font-semibold uppercase tracking-wider">Penyelesaian</span>
+                        <div class="p-2 bg-purple-950/80 text-purple-300 border border-purple-800/50 rounded-lg">
+                            <i data-lucide="pie-chart" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <div id="kpiPercent" class="text-2xl font-bold text-purple-300">0%</div>
+                        <div class="w-full bg-[#0f051d] h-1.5 rounded-full mt-2 overflow-hidden border border-purple-950">
+                            <div id="kpiProgressBar" class="bg-gradient-to-r from-purple-500 to-fuchsia-500 h-full w-0 transition-all duration-500"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-card-gradient p-4 rounded-xl shadow-lg border border-purple-900/40 flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-purple-300 mb-2">
+                        <span class="text-xs font-semibold uppercase tracking-wider">Sisa SR</span>
+                        <div class="p-2 bg-purple-950/80 text-purple-300 border border-purple-800/50 rounded-lg">
+                            <i data-lucide="trending-up" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <div id="kpiSisa" class="text-2xl font-bold text-purple-300">0</div>
+                        <p class="text-[10px] text-purple-300/60 mt-1">Pending + Cancel</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CHARTS SECTION GRID -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Status Distribution (Donut Chart) -->
+                <div class="bg-card-gradient p-5 rounded-xl shadow-lg border border-purple-900/40 flex flex-col">
+                    <h3 class="text-sm font-bold text-slate-200 mb-4 flex items-center gap-2">
+                        <i data-lucide="pie-chart" class="w-4 h-4 text-purple-400"></i> Distribusi Status SR
+                    </h3>
+                    <div class="relative flex-1 min-h-[240px] flex items-center justify-center">
+                        <canvas id="chartStatus"></canvas>
+                    </div>
+                </div>
+
+                <!-- Subkon Progress (Bar Chart) -->
+                <div class="bg-card-gradient p-5 rounded-xl shadow-lg border border-purple-900/40 lg:col-span-2 flex flex-col">
+                    <h3 class="text-sm font-bold text-slate-200 mb-4 flex items-center gap-2">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4 text-purple-400"></i> Progres Pekerjaan per Subkontraktor
+                    </h3>
+                    <div class="relative flex-1 min-h-[250px]">
+                        <canvas id="chartSubkon"></canvas>
+                    </div>
+                </div>
+
+                <!-- 3 GRAFIK BERJEJER MENJADI SATU -->
+                <div class="bg-card-gradient p-5 rounded-xl shadow-lg border border-purple-900/40 flex flex-col">
+                    <h3 class="text-sm font-bold text-slate-200 mb-4 flex items-center gap-2">
+                        <i data-lucide="map-pin" class="w-4 h-4 text-purple-400"></i> Sebaran SR per AB
+                    </h3>
+                    <div class="relative flex-1 min-h-[220px]">
+                        <canvas id="chartAB"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-card-gradient p-5 rounded-xl shadow-lg border border-purple-900/40 flex flex-col">
+                    <h3 class="text-sm font-bold text-slate-200 mb-4 flex items-center gap-2">
+                        <i data-lucide="check-circle-2" class="w-4 h-4 text-purple-400"></i> Hasil FA Done Per Hari
+                    </h3>
+                    <div class="relative flex-1 min-h-[220px]">
+                        <canvas id="chartTimeline"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-card-gradient p-5 rounded-xl shadow-lg border border-purple-900/40 flex flex-col">
+                    <h3 class="text-sm font-bold text-slate-200 mb-4 flex items-center gap-2">
+                        <i data-lucide="calendar" class="w-4 h-4 text-purple-400"></i> Performa Mingguan
+                    </h3>
+                    <div class="relative flex-1 min-h-[220px]">
+                        <canvas id="chartWeekly"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: HALAMAN MONITORING DATA (TABEL) -->
+        <div id="view-table" class="hidden space-y-4">
+            <div class="bg-[#170b2c]/70 backdrop-blur-md rounded-xl shadow-xl border border-purple-900/40 overflow-hidden">
+                <div class="p-4 bg-[#0f051d]/60 border-b border-purple-900/40 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-purple-300/70">Tampilkan</span>
+                        <select id="tablePageSize" onchange="changePageSize()" class="text-xs border-purple-900/50 bg-[#0f051d] text-slate-200 rounded-md py-1 px-2 focus:ring-purple-500 border">
+                            <option value="10">10</option>
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                        <span class="text-xs text-purple-300/70">data per halaman</span>
+                    </div>
+
+                    <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                        <button onclick="openFormModal()" class="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-1.5 transition-all shadow-md shadow-purple-900/40 border border-purple-400/20">
+                            <i data-lucide="plus" class="w-4 h-4"></i> Tambah Data Manual
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto relative">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-purple-950/80 text-purple-200 font-semibold border-b border-purple-900/60 uppercase tracking-wider">
+                                <th class="p-3 text-center w-12">NO</th>
+                                <th class="p-3 cursor-pointer hover:bg-purple-900/60 transition-colors" onclick="sortTable('faId')">
+                                    <div class="flex items-center gap-1">FA ID <i data-lucide="arrow-up-down" class="w-3 h-3 text-purple-400"></i></div>
+                                </th>
+                                <th class="p-3 cursor-pointer hover:bg-purple-900/60 transition-colors" onclick="sortTable('nama')">
+                                    <div class="flex items-center gap-1">NAMA PELANGGAN <i data-lucide="arrow-up-down" class="w-3 h-3 text-purple-400"></i></div>
+                                </th>
+                                <th class="p-3">ALAMAT LENGKAP</th>
+                                <th class="p-3">KELURAHAN</th>
+                                <th class="p-3">NO HP</th>
+                                <th class="p-3">SUBKON</th>
+                                <th class="p-3">JENIS PEKERJAAN</th>
+                                <th class="p-3">AB</th>
+                                <th class="p-3 cursor-pointer hover:bg-purple-900/60 transition-colors" onclick="sortTable('rencanaTgl')">
+                                    <div class="flex items-center gap-1">RENCANA TGL <i data-lucide="arrow-up-down" class="w-3 h-3 text-purple-400"></i></div>
+                                </th>
+                                <th class="p-3">TGL DIKERJAKAN</th>
+                                <th class="p-3 text-center">STATUS</th>
+                                <th class="p-3">KETERANGAN / ALASAN KENDALA</th>
+                                <th class="p-3 text-center sticky right-0 bg-purple-950 border-l border-purple-900/60">AKSI</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="divide-y divide-purple-950/60"></tbody>
+                    </table>
+                </div>
+
+                <div id="mobileCardContainer" class="block sm:hidden divide-y divide-purple-950/60 p-2"></div>
+
+                <div class="p-4 bg-[#0f051d]/60 border-t border-purple-900/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                    <div id="paginationInfo" class="text-purple-300/70">Menampilkan 0 - 0 dari 0 data</div>
+                    <div class="flex items-center space-x-1" id="paginationControls"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 3: HALAMAN MONITORING SUBKON -->
+        <div id="view-subkon" class="hidden space-y-6">
+            <div id="subkonCardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>
+
+        <!-- VIEW 4: SHEET MANAJEMEN KENDALA & ALASAN GAGAL -->
+        <div id="view-kendala" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Grafik Analisis Kendala -->
+                <div class="bg-card-gradient p-5 rounded-xl shadow-lg border border-purple-900/40 flex flex-col">
+                    <h3 class="text-sm font-bold text-slate-200 mb-4 flex items-center gap-2">
+                        <i data-lucide="pie-chart" class="w-4 h-4 text-purple-400"></i> Proporsi Alasan Kendala
+                    </h3>
+                    <div class="relative flex-1 min-h-[260px] flex items-center justify-center">
+                        <canvas id="chartKendala"></canvas>
+                    </div>
+                </div>
+
+                <!-- Tabel Rekapitulasi Jenis Kendala -->
+                <div class="bg-card-gradient p-5 rounded-xl shadow-lg border border-purple-900/40 lg:col-span-2 flex flex-col space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                            <i data-lucide="alert-triangle" class="w-4 h-4 text-purple-400"></i> Rekapitulasi Frekuensi Alasan Kendala
+                        </h3>
+                        <span id="badgeTotalKendala" class="bg-purple-950 text-purple-300 border border-purple-900/60 text-xs px-2.5 py-1 rounded-full font-semibold">0 Kendala Tercatat</span>
+                    </div>
+                    <div class="overflow-x-auto flex-1">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-purple-950/80 text-purple-200 font-semibold border-b border-purple-900/60 uppercase">
+                                    <th class="p-3">Alasan / Keterangan Kendala</th>
+                                    <th class="p-3 text-center">Jumlah Kasus</th>
+                                    <th class="p-3 text-center">Persentase</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableKendalaSummary" class="divide-y divide-purple-950/60"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daftar Detail Pelanggan yang Pending/Cancel Beserta Kendalanya -->
+            <div class="bg-[#170b2c]/70 backdrop-blur-md rounded-xl shadow-xl border border-purple-900/40 overflow-hidden">
+                <div class="p-4 bg-[#0f051d]/60 border-b border-purple-900/40 flex items-center justify-between">
+                    <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                        <i data-lucide="list" class="w-4 h-4 text-purple-400"></i> Daftar Pelanggan Pending & Cancel (Butuh Tindak Lanjut)
+                    </h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-purple-950/80 text-purple-200 font-semibold border-b border-purple-900/60 uppercase">
+                                <th class="p-3 text-center w-12">NO</th>
+                                <th class="p-3">FA ID</th>
+                                <th class="p-3">NAMA PELANGGAN</th>
+                                <th class="p-3">SUBKON</th>
+                                <th class="p-3 text-center">STATUS</th>
+                                <th class="p-3">ALASAN / KETERANGAN KENDALA</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableKendalaDetail" class="divide-y divide-purple-950/60"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-[#0f051d]/80 border-t border-purple-950 mt-auto py-4 text-center text-xs text-purple-300/50">
+        <p>© 2026 Monitoring Sambungan Rumah (SR) Water Utility Dashboard. All Rights Reserved.</p>
+    </footer>
+
+    <!-- MODAL 0: KONFIGURASI GOOGLE SHEETS AUTO-SYNC -->
+    <div id="sheetConfigModal" class="fixed inset-0 bg-[#0f051d]/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#170b2c] rounded-xl shadow-2xl border border-purple-900/60 w-full max-w-xl overflow-hidden text-slate-200">
+            <div class="p-4 bg-purple-950 text-white flex items-center justify-between border-b border-purple-900/60">
+                <h3 class="font-bold text-sm flex items-center gap-2">
+                    <i data-lucide="table-2" class="w-4 h-4 text-emerald-400"></i> Konfigurasi Sinkronisasi Otomatis Google Sheets
+                </h3>
+                <button onclick="closeSheetConfigModal()" class="text-purple-300/60 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="p-5 space-y-4 text-xs">
+                <div class="bg-emerald-950/40 border border-emerald-800/50 p-3 rounded-lg space-y-1.5">
+                    <p class="font-semibold text-emerald-300 flex items-center gap-1.5">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i> Otomatis Konversi Link Publish Google Sheets:
+                    </p>
+                    <p class="text-purple-200/80 leading-relaxed">
+                        Sistem otomatis mengubah tautan <code class="bg-[#0f051d] px-1 rounded text-emerald-300">/pubhtml</code> Google Sheets Anda menjadi endpoint data CSV langsung (<code class="bg-[#0f051d] px-1 rounded text-emerald-300">/pub?output=csv</code>) agar dapat dibaca secara real-time.
+                    </p>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-purple-200 mb-1.5">Tautan Google Sheets (Publish to Web) <span class="text-emerald-400">*</span></label>
+                    <input type="url" id="inputSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/e/.../pubhtml" class="w-full rounded-lg border-purple-900/60 bg-[#0f051d] py-2.5 px-3 border focus:ring-2 focus:ring-emerald-500 text-slate-200">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold text-purple-200 mb-1.5">Metode Koneksi</label>
+                        <select id="selectFetchMode" class="w-full rounded-lg border-purple-900/60 bg-[#0f051d] py-2 px-3 border focus:ring-2 focus:ring-emerald-500 text-slate-200">
+                            <option value="direct">Direct Fetch (Disarankan untuk Google Sheets)</option>
+                            <option value="allorigins">Via AllOrigins Proxy (Cadangan)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-purple-200 mb-1.5">Interval Auto-Refresh</label>
+                        <select id="selectAutoRefreshInterval" class="w-full rounded-lg border-purple-900/60 bg-[#0f051d] py-2 px-3 border focus:ring-2 focus:ring-emerald-500 text-slate-200">
+                            <option value="0">Hanya saat halaman dibuka</option>
+                            <option value="30000">Setiap 30 Detik</option>
+                            <option value="60000" selected>Setiap 1 Menit</option>
+                            <option value="300000">Setiap 5 Menit</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pt-1">
+                    <label class="block font-semibold text-purple-200 mb-1">Preview Endpoint CSV Hasil Konversi:</label>
+                    <div id="previewConvertedUrl" class="p-2.5 bg-[#0f051d] border border-purple-900/50 rounded-lg text-[11px] text-emerald-300/80 break-all font-mono">
+                        -
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 bg-[#0f051d] border-t border-purple-900/60 flex justify-between items-center">
+                <button onclick="resetSheetDefault()" class="text-xs text-purple-300/60 hover:text-purple-200 underline">Kembalikan Link Default</button>
+                <div class="flex gap-2">
+                    <button onclick="closeSheetConfigModal()" class="px-4 py-2 text-xs font-medium text-purple-300/70 hover:text-slate-200">Batal</button>
+                    <button onclick="saveSheetConfig()" class="px-4 py-2 text-xs font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-lg shadow-md">
+                        Simpan & Sinkronkan Sekarang
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 1: UPLOAD EXCEL -->
+    <div id="uploadModal" class="fixed inset-0 bg-[#0f051d]/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#170b2c] rounded-xl shadow-2xl border border-purple-900/60 w-full max-w-2xl overflow-hidden transition-all transform scale-95 opacity-0 text-slate-200" id="uploadModalContent">
+            <div class="p-4 bg-purple-950 text-white flex items-center justify-between border-b border-purple-900/60">
+                <h3 class="font-bold text-sm flex items-center gap-2">
+                    <i data-lucide="file-up" class="w-4 h-4 text-purple-400"></i> Import Data dari File Excel (.xlsx / .xls / .csv)
+                </h3>
+                <button onclick="closeUploadModal()" class="text-purple-300/60 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-5">
+                <div id="dropZone" onclick="document.getElementById('excelFileInput').click()" class="border-2 border-dashed border-purple-700/60 hover:border-purple-500 bg-purple-950/30 hover:bg-purple-950/50 p-8 rounded-xl text-center cursor-pointer transition-all flex flex-col items-center justify-center">
+                    <i data-lucide="upload-cloud" class="w-12 h-12 text-purple-400 mb-2"></i>
+                    <p class="text-xs font-semibold text-slate-200">Klik untuk memilih file atau seret file ke sini</p>
+                    <p class="text-[11px] text-purple-300/60 mt-1">Mendukung format Excel .xlsx, .xls, dan .csv</p>
+                    <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileSelect(event)">
+                </div>
+
+                <div id="uploadPreviewBox" class="hidden bg-[#0f051d]/70 border border-purple-900/50 p-4 rounded-lg space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="file-spreadsheet" class="w-5 h-5 text-purple-400"></i>
+                            <div>
+                                <p id="previewFileName" class="text-xs font-bold text-slate-200">filename.xlsx</p>
+                                <p id="previewRowCount" class="text-[10px] text-purple-300/60">0 baris data terdeteksi</p>
+                            </div>
+                        </div>
+                        <span class="text-xs bg-purple-950 text-purple-300 border border-purple-800 px-2 py-0.5 rounded font-medium">Valid</span>
+                    </div>
+
+                    <div class="space-y-2 border-t border-purple-950 pt-3">
+                        <p class="text-xs font-bold text-slate-200">Pilih Metode Impor Data:</p>
+                        <label class="flex items-start gap-3 p-2.5 rounded-lg border border-purple-900/60 bg-purple-950/40 hover:bg-purple-900/40 cursor-pointer transition-all">
+                            <input type="radio" name="importMode" value="UPDATE" checked class="mt-0.5 text-purple-600 focus:ring-purple-500">
+                            <div>
+                                <span class="text-xs font-semibold text-purple-300 block">Mode A: UPDATE DATA (Disarankan)</span>
+                                <span class="text-[11px] text-purple-300/70 block">Memperbarui baris lama berdasarkan FA ID dan menambahkan data baru tanpa menghapus data sebelumnya.</span>
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-3 p-2.5 rounded-lg border border-purple-900/60 bg-purple-950/20 hover:bg-purple-900/30 cursor-pointer transition-all">
+                            <input type="radio" name="importMode" value="REPLACE" class="mt-0.5 text-purple-600 focus:ring-purple-500">
+                            <div>
+                                <span class="text-xs font-semibold text-purple-300 block">Mode B: REPLACE DATA (Ganti Seluruh Data)</span>
+                                <span class="text-[11px] text-purple-300/70 block">Menghapus SELURUH data lama dan menggantikannya dengan isi file Excel baru secara total.</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 bg-[#0f051d] border-t border-purple-900/60 flex justify-end gap-2">
+                <button onclick="closeUploadModal()" class="px-4 py-2 text-xs font-medium text-purple-300/70 hover:text-slate-200 transition-colors">Batal</button>
+                <button id="btnProcessImport" onclick="processImport()" disabled class="px-4 py-2 text-xs font-semibold text-white bg-purple-700 opacity-50 cursor-not-allowed hover:bg-purple-600 rounded-lg transition-all shadow-sm">
+                    Proses Impor Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: FORM TAMBAH / EDIT MANUAL -->
+    <div id="formModal" class="fixed inset-0 bg-[#0f051d]/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#170b2c] rounded-xl shadow-2xl border border-purple-900/60 w-full max-w-3xl overflow-hidden max-h-[90vh] flex flex-col text-slate-200">
+            <div class="p-4 bg-purple-950 text-white flex items-center justify-between border-b border-purple-900/60">
+                <h3 id="formModalTitle" class="font-bold text-sm flex items-center gap-2">
+                    <i data-lucide="edit-3" class="w-4 h-4 text-purple-400"></i> Tambah / Edit Data Sambungan Rumah
+                </h3>
+                <button onclick="closeFormModal()" class="text-purple-300/60 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="srForm" onsubmit="saveRecord(event)" class="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
+                <input type="hidden" id="editIndex" value="-1">
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block font-medium text-purple-200 mb-1">FA ID <span class="text-purple-400">*</span></label>
+                        <input type="text" id="formFaId" required placeholder="Contoh: FA-9901" class="w-full rounded-lg border-purple-900/60 bg-[#0f051d] py-2 px-3 border focus:ring-2 focus:ring-purple-500 text-slate-200">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block font-medium text-purple-200 mb-1">Nama Pelanggan <span class="text-purple-400">*</span></label>
+                        <input type="text" id="formNama" required placeholder="Nama lengkap pelanggan" class="w-full rounded-lg border-purple-900/60 bg-[#0f051d] py-2 px-3 border focus:ring-2 focus:ring-purple-500 text-slate-200">
+                    </div>
+
+                    <div class="md:col-span-3">
+                        <label class="block font-medium text-purple-200 mb-1">Alamat Lengkap</label>
+                        <input type="text" id="formAlamat" placeholder="Jl. Raya No. XX, RT/RW..." class="w-full rounded-lg border-purple-900/60 bg-[#0f051d] py-2 px-3 border focus:ring-2 focus:ring-purple-500 text-slate-200">
+                    </div>
+
+                    <div>
+                        <label class="block font-medium text-purple-200 mb-1">Kelurahan</label>
+                        <input type="text" id="formKelurahan" placeholder="Kelurahan" class="w-full rounded-lg border-purple-900/60 bg-[#0f051d] py-2 px-3 border focus:ring-2 focus:ring-purple-500 text-slate-200">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-purple-200 mb-1">No HP Pelanggan</label>
+                        <input type="text" id="formNoHp" placeholder="08123456789" class="w-full rounded-lg border-purple-900/60 bg-[#0f051d] py-2 px-3 border focus:ring-2 focus:ring-purple-500 text-slate-200">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-purple-200 mb-1">Subkon</label>
+                        <input type="text" id="formSubkon" placeholder="Nama Subkon" class="w-full rounded-lg border-purple-900/60 bg-[#0f051d] py-2 px-3 border focus:ring-2 focus:ring-purple-500 text-slate-200">
+                    </div>
+
+                    <div>
+                        <label class="block font-medium text-purple-200 mb-1">Jenis Pekerjaan</label>
+                        <input type="text" id="formJenisPekerjaan" placeholder="Pemasangan Baru / Revisit" class="w-full rounded-lg border-purple-900/60 bg-[#0f051d] py-2 px-3 border focus:ring-2 focus:ring-purple-500 text-slate-200">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-purple-200 mb-1">AB</label>
+                        <input type="text" id="formAB" placeholder="AB 1 / AB 2" class="w-full rounded-lg border-purple-900/60 bg-[#0f051d] py-2 px-3 border focus:ring-2 focus:ring-purple-500 text-slate-200">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-purple-200 mb-1">Status Pekerjaan <span class="text-purple-400">*</span></label>
+                        <select id="formStatus" required class="w-full rounded-lg border-purple-900/60 bg-[#0f051d] py-2 px-3 border focus:ring-2 focus:ring-purple-500 text-slate-200 font-semibold">
+                            <option value="PENDING" class="text-purple-300 bg-[#170b2c]">PENDING</option>
+                            <option value="DONE" class="text-purple-300 bg-[#170b2c]">DONE</option>
+                            <option value="CANCEL" class="text-purple-300 bg-[#170b2c]">CANCEL</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block font-medium text-purple-200 mb-1">Rencana Tgl Kerja</label>
+                        <input type="date" id="formRencanaTgl" class="w-full rounded-lg border-purple-900/60 bg-[#0f051d] py-2 px-3 border focus:ring-2 focus:ring-purple-500 text-slate-200">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-purple-200 mb-1">Tanggal Dikerjakan</label>
+                        <input type="date" id="formTglDikerjakan" class="w-full rounded-lg border-purple-900/60 bg-[#0f051d] py-2 px-3 border focus:ring-2 focus:ring-purple-500 text-slate-200">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-purple-200 mb-1">Keterangan / Alasan Kendala</label>
+                        <input type="text" id="formKeterangan" placeholder="Contoh: Menunggu izin RT/RW, Galian terhalang pipa gas" class="w-full rounded-lg border-purple-900/60 bg-[#0f051d] py-2 px-3 border focus:ring-2 focus:ring-purple-500 text-slate-200">
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-purple-950 flex justify-end gap-2">
+                    <button type="button" onclick="closeFormModal()" class="px-4 py-2 text-xs font-medium text-purple-300/70 hover:text-slate-200">Batal</button>
+                    <button type="submit" class="px-5 py-2 text-xs font-semibold text-white bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 rounded-lg shadow-md">Simpan Data</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL CONFIRM DELETE -->
+    <div id="confirmModal" class="fixed inset-0 bg-[#0f051d]/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#170b2c] rounded-xl shadow-2xl border border-purple-900/60 w-full max-w-sm overflow-hidden p-6 text-center space-y-4 text-slate-200">
+            <div class="w-12 h-12 bg-purple-950 text-purple-300 border border-purple-800/60 rounded-full flex items-center justify-center mx-auto">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h4 class="text-sm font-bold text-slate-100">Konfirmasi Hapus Data</h4>
+                <p class="text-xs text-purple-300/70 mt-1">Apakah Anda yakin ingin menghapus data SR ini? Tindakan ini tidak dapat dibatalkan.</p>
+            </div>
+            <div class="flex justify-center gap-2 pt-2">
+                <button onclick="closeConfirmModal()" class="px-4 py-2 text-xs font-medium text-slate-300 bg-purple-950/60 rounded-lg hover:bg-purple-900/60">Batal</button>
+                <button id="btnConfirmDelete" class="px-4 py-2 text-xs font-semibold text-white bg-purple-700 hover:bg-purple-600 rounded-lg shadow-sm">Hapus Sekarang</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- APPLICATION LOGIC JAVASCRIPT -->
+    <script>
+        Chart.defaults.color = '#c084fc';
+        Chart.defaults.borderColor = 'rgba(76, 29, 149, 0.3)';
+
+        // =========================================================================
+        // KONFIGURASI GOOGLE SHEETS LIVE SYNC (CSV ENDPOINT)
+        // =========================================================================
+        const DEFAULT_GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTa503Ts4hdKyEK9btQlddhasFBWPEcMETuajPNbFMG8bb03bZzNJ3j2ToHi0DajNC2L7JEjOxMtR9D/pubhtml";
+        
+        let sheetConfig = {
+            shareUrl: localStorage.getItem('sl_gsheet_url') || DEFAULT_GOOGLE_SHEET_URL,
+            fetchMode: localStorage.getItem('sl_gsheet_mode') || 'direct',
+            refreshInterval: parseInt(localStorage.getItem('sl_gsheet_interval') || '60000')
+        };
+        let autoRefreshTimer = null;
+
+        /**
+         * Mengubah tautan Google Sheets /pubhtml menjadi /pub?output=csv secara otomatis
+         */
+        function convertGoogleSheetToCsvUrl(url) {
+            if (!url) return "";
+            let cleanUrl = url.trim();
+
+            // Jika tautan adalah /pubhtml, ganti menjadi /pub?output=csv
+            if (cleanUrl.includes('/pubhtml')) {
+                cleanUrl = cleanUrl.replace('/pubhtml', '/pub');
+                const separator = cleanUrl.includes('?') ? '&' : '?';
+                return `${cleanUrl}${separator}output=csv`;
+            }
+
+            // Jika sudah /pub tetapi belum ada output=csv
+            if (cleanUrl.includes('/pub') && !cleanUrl.includes('output=csv')) {
+                const separator = cleanUrl.includes('?') ? '&' : '?';
+                return `${cleanUrl}${separator}output=csv`;
+            }
+
+            // Jika tautan standar /edit#gid=...
+            if (cleanUrl.includes('/edit')) {
+                return cleanUrl.replace(/\/edit.*$/, '/export?format=csv');
+            }
+
+            return cleanUrl;
+        }
+
+        function buildFetchUrl(csvUrl, fetchMode) {
+            const separator = csvUrl.includes('?') ? '&' : '?';
+            const freshCsvUrl = `${csvUrl}${separator}t=${Date.now()}`;
+
+            if (fetchMode === 'allorigins') {
+                return `https://api.allorigins.win/raw?url=${encodeURIComponent(freshCsvUrl)}`;
+            }
+            return freshCsvUrl;
+        }
+
+        function showSyncBanner(message, type = 'info') {
+            const banner = document.getElementById('syncStatusBanner');
+            const bannerText = document.getElementById('syncStatusBannerText');
+            banner.classList.remove('hidden', 'bg-purple-950/90', 'bg-red-950/90', 'bg-emerald-950/90', 'border-red-800', 'border-emerald-800');
+            
+            if (type === 'error') {
+                banner.classList.add('bg-red-950/90', 'border-red-800', 'text-red-200');
+            } else if (type === 'success') {
+                banner.classList.add('bg-emerald-950/90', 'border-emerald-800', 'text-emerald-200');
+            } else {
+                banner.classList.add('bg-purple-950/90', 'border-purple-800/60', 'text-purple-200');
+            }
+            
+            bannerText.innerText = message;
+            if (type === 'success') {
+                setTimeout(() => { banner.classList.add('hidden'); }, 4000);
+            }
+        }
+
+        /**
+         * Menarik data dari Google Sheets CSV dan mem-parsingnya menggunakan SheetJS
+         */
+        async function syncFromGoogleSheets(isManual = false) {
+            const btn = document.getElementById('btnSyncCloud');
+            const icon = document.getElementById('iconSyncCloud');
+            const statusText = document.getElementById('lastUpdateText');
+
+            if (!sheetConfig.shareUrl) {
+                if (isManual) openSheetConfigModal();
+                return;
+            }
+
+            try {
+                btn.disabled = true;
+                icon.classList.add('animate-spin-sync');
+                statusText.innerText = "Menyinkronkan Google Sheets...";
+                if (isManual) showSyncBanner("Mengambil data terbaru dari Google Sheets...", "info");
+
+                const csvUrl = convertGoogleSheetToCsvUrl(sheetConfig.shareUrl);
+                const modesToTry = [sheetConfig.fetchMode, 'direct', 'allorigins']
+                    .filter((v, i, a) => a.indexOf(v) === i);
+
+                let csvText = null;
+                let lastError = null;
+
+                for (const mode of modesToTry) {
+                    try {
+                        const targetUrl = buildFetchUrl(csvUrl, mode);
+                        const response = await fetch(targetUrl);
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                        
+                        const text = await response.text();
+                        // Pastikan respons bukan halaman HTML error/login
+                        if (text.trim().startsWith('<!DOCTYPE html>') || text.trim().startsWith('<html')) {
+                            throw new Error("Respons berupa halaman HTML, bukan CSV.");
+                        }
+
+                        csvText = text;
+                        break;
+                    } catch (err) {
+                        lastError = err;
+                        console.warn(`Percobaan via mode [${mode}] gagal:`, err.message);
+                    }
+                }
+
+                if (!csvText) {
+                    throw lastError || new Error("Gagal terhubung ke Google Sheets.");
+                }
+
+                // Parse string CSV menjadi JSON menggunakan SheetJS
+                const workbook = XLSX.read(csvText, { type: 'string' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonRows = XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
+
+                if (jsonRows.length === 0) {
+                    throw new Error("Data pada Google Sheets kosong atau header tidak terbaca.");
+                }
+
+                const mappedData = mapRowsToDataset(jsonRows);
+                mainDataset = mappedData;
+
+                populateFilterOptions();
+                applyFilters();
+                updateLastTimestamp(true);
+                
+                if (isManual) {
+                    showSyncBanner(`Berhasil menyinkronkan ${mainDataset.length} data SR dari Google Sheets!`, "success");
+                } else {
+                    document.getElementById('syncStatusBanner').classList.add('hidden');
+                }
+
+            } catch (error) {
+                console.error("Google Sheets Sync Error:", error);
+                statusText.innerText = "Gagal Sinkron (Data Lokal)";
+                const isLocalFile = window.location.protocol === 'file:';
+                const extraHint = isLocalFile 
+                    ? " (Catatan: Anda membuka file via file://, gunakan VS Code Live Server / GitHub Pages agar akses internet tidak diblokir browser)" 
+                    : "";
+                showSyncBanner(`Sinkronisasi gagal: ${error.message}${extraHint}`, "error");
+            } finally {
+                btn.disabled = false;
+                icon.classList.remove('animate-spin-sync');
+            }
+        }
+
+        function mapRowsToDataset(jsonRows) {
+            return jsonRows
+                .filter(row => {
+                    // Abaikan baris yang benar-benar kosong
+                    return Object.values(row).some(val => String(val).trim() !== "");
+                })
+                .map((row, idx) => {
+                    const getVal = (keys) => {
+                        for (let k of keys) {
+                            const found = Object.keys(row).find(rk => rk.toLowerCase().trim() === k.toLowerCase());
+                            if (found && row[found] !== undefined) return row[found];
+                        }
+                        return "";
+                    };
+
+                    let rawStatus = String(getVal(["STATUS PEKERJAAN", "STATUS"])).toUpperCase().trim();
+                    if (!["DONE", "PENDING", "CANCEL"].includes(rawStatus)) {
+                        rawStatus = rawStatus ? rawStatus : "PENDING";
+                    }
+
+                    return {
+                        no: idx + 1,
+                        faId: String(getVal(["FA ID", "FA_ID", "FAID", "NO FA", "ID"])).trim(),
+                        nama: String(getVal(["NAMA PELANGGAN", "NAMA", "PELANGGAN"])).trim(),
+                        alamat: String(getVal(["ALAMAT LENGKAP", "ALAMAT"])).trim(),
+                        kelurahan: String(getVal(["KELURAHAN", "KEL"])).trim(),
+                        noHp: String(getVal(["NO HP PELANGGAN", "NO HP", "TELP", "HP", "NO_HP"])).trim(),
+                        subkon: String(getVal(["SUBKON", "SUBKONTRAKTOR"])).trim(),
+                        jenis: String(getVal(["JENIS PEKERJAAN", "JENIS"])).trim(),
+                        ab: String(getVal(["AB", "AREA BISNIS"])).trim(),
+                        rencanaTgl: parseExcelDate(getVal(["RENCANA TGL KERJA", "RENCANA TGL", "TGL RENCANA", "TANGGAL", "TGL"])),
+                        tglDikerjakan: parseExcelDate(getVal(["TANGGAL DIKERJAKAN", "TGL DIKERJAKAN", "TGL SELESAI", "TANGGAL SELESAI"])),
+                        status: rawStatus,
+                        keterangan: String(getVal(["KETERANGAN", "KET", "ALASAN", "KENDALA", "CATATAN", "KETERANGAN / KENDALA", "ALASAN KENDALA"])).trim()
+                    };
+                });
+        }
+
+        function setupAutoRefreshTimer() {
+            if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+            if (sheetConfig.refreshInterval > 0) {
+                autoRefreshTimer = setInterval(() => {
+                    syncFromGoogleSheets(false);
+                }, sheetConfig.refreshInterval);
+            }
+        }
+
+        // Modal Konfigurasi Google Sheets Handlers
+        function openSheetConfigModal() {
+            document.getElementById('inputSheetUrl').value = sheetConfig.shareUrl;
+            document.getElementById('selectFetchMode').value = sheetConfig.fetchMode;
+            document.getElementById('selectAutoRefreshInterval').value = String(sheetConfig.refreshInterval);
+            updateConvertedUrlPreview();
+            document.getElementById('sheetConfigModal').classList.remove('hidden');
+        }
+
+        function closeSheetConfigModal() {
+            document.getElementById('sheetConfigModal').classList.add('hidden');
+        }
+
+        function updateConvertedUrlPreview() {
+            const urlVal = document.getElementById('inputSheetUrl').value;
+            document.getElementById('previewConvertedUrl').innerText = convertGoogleSheetToCsvUrl(urlVal) || "-";
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlInput = document.getElementById('inputSheetUrl');
+            if (urlInput) urlInput.addEventListener('input', updateConvertedUrlPreview);
+        });
+
+        function saveSheetConfig() {
+            const newUrl = document.getElementById('inputSheetUrl').value.trim();
+            const newMode = document.getElementById('selectFetchMode').value;
+            const newInterval = parseInt(document.getElementById('selectAutoRefreshInterval').value);
+
+            sheetConfig.shareUrl = newUrl;
+            sheetConfig.fetchMode = newMode;
+            sheetConfig.refreshInterval = newInterval;
+
+            localStorage.setItem('sl_gsheet_url', newUrl);
+            localStorage.setItem('sl_gsheet_mode', newMode);
+            localStorage.setItem('sl_gsheet_interval', String(newInterval));
+
+            setupAutoRefreshTimer();
+            closeSheetConfigModal();
+            syncFromGoogleSheets(true);
+        }
+
+        function resetSheetDefault() {
+            document.getElementById('inputSheetUrl').value = DEFAULT_GOOGLE_SHEET_URL;
+            document.getElementById('selectFetchMode').value = 'direct';
+            document.getElementById('selectAutoRefreshInterval').value = '60000';
+            updateConvertedUrlPreview();
+        }
+
+        // =========================================================================
+        // PARSER TANGGAL & DATASET DEFAULT
+        // =========================================================================
+        function parseExcelDate(val) {
+            if (!val) return "";
+            if (typeof val === 'number') {
+                const dateInfo = XLSX.SSF.parse_date_code(val);
+                if (dateInfo) {
+                    const y = dateInfo.y;
+                    const m = String(dateInfo.m).padStart(2, '0');
+                    const d = String(dateInfo.d).padStart(2, '0');
+                    return `${y}-${m}-${d}`;
+                }
+            }
+            let strVal = String(val).trim();
+            if (strVal.includes('/')) {
+                const parts = strVal.split('/');
+                if (parts.length === 3) {
+                    let d = parts[0].padStart(2, '0');
+                    let m = parts[1].padStart(2, '0');
+                    let y = parts[2];
+                    if (y.length === 2) y = '20' + y;
+                    return `${y}-${m}-${d}`;
+                }
+            }
+            return strVal;
+        }
+
+        let mainDataset = [
+            { no: 1, faId: "FA-1001", nama: "Budi Santoso", alamat: "Jl. Anggrek No. 12", kelurahan: "Cengkareng", noHp: "081234567801", subkon: "KUA", jenis: "Pasang Baru", rencanaTgl: "2026-03-01", ab: "AB 1", tglDikerjakan: "2026-03-01", status: "DONE", keterangan: "Selesai rapi" },
+            { no: 2, faId: "FA-1002", nama: "Siti Aminah", alamat: "Jl. Mawar No. 45", kelurahan: "Dharmawangsa", noHp: "081234567802", subkon: "FUJ", jenis: "Pasang Baru", rencanaTgl: "2026-03-02", ab: "AB 1", tglDikerjakan: "", status: "PENDING", keterangan: "Menunggu izin RT/RW" },
+            { no: 3, faId: "FA-1003", nama: "Hendra Wijaya", alamat: "Jl. Melati No. 88", kelurahan: "Pondok Indah", noHp: "081234567803", subkon: "BRM", jenis: "Revisit", rencanaTgl: "2026-03-02", ab: "AB 2", tglDikerjakan: "2026-03-02", status: "DONE", keterangan: "Meter terpasang" },
+            { no: 4, faId: "FA-1004", nama: "Rina Kusuma", alamat: "Jl. Kenanga No. 03", kelurahan: "Bintaro", noHp: "081234567804", subkon: "KUA", jenis: "Pasang Baru", rencanaTgl: "2026-03-03", ab: "AB 1", tglDikerjakan: "", status: "CANCEL", keterangan: "Rumah kosong / ditolak" },
+            { no: 5, faId: "FA-1005", nama: "Agus Setiawan", alamat: "Jl. Dahlia No. 19", kelurahan: "Jati Baru", noHp: "081234567805", subkon: "FUJ", jenis: "Pasang Baru", rencanaTgl: "2026-03-03", ab: "AB 2", tglDikerjakan: "2026-03-04", status: "DONE", keterangan: "Selesai" }
+        ];
+
+        let filteredData = [...mainDataset];
+        let currentPage = 1;
+        let pageSize = 25;
+        let sortColumn = '';
+        let sortDirection = 'asc';
+        let parsedExcelRows = [];
+        let itemToDeleteIndex = -1;
+
+        let chartStatusInst = null;
+        let chartSubkonInst = null;
+        let chartABInst = null;
+        let chartTimelineInst = null;
+        let chartWeeklyInst = null;
+        let chartKendalaInst = null;
+
+        window.onload = function() {
+            lucide.createIcons();
+            populateFilterOptions();
+            applyFilters();
+            
+            // Otomatis tarik data dari Google Sheets saat dashboard dibuka
+            syncFromGoogleSheets(false);
+            setupAutoRefreshTimer();
+        };
+
+        function updateLastTimestamp(fromCloud = false) {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+            const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const prefix = fromCloud ? "Sheets Live: " : "";
+            document.getElementById('lastUpdateText').innerText = `${prefix}${dateStr}, ${timeStr} WIB`;
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active', 'border-purple-500', 'text-purple-300');
+                btn.classList.add('border-transparent', 'text-slate-400');
+            });
+
+            const activeBtn = document.getElementById(`tab-${tabName}`);
+            if (activeBtn) {
+                activeBtn.classList.add('active', 'border-purple-500', 'text-purple-300');
+                activeBtn.classList.remove('border-transparent', 'text-slate-400');
+            }
+
+            document.getElementById('view-dashboard').classList.add('hidden');
+            document.getElementById('view-table').classList.add('hidden');
+            document.getElementById('view-subkon').classList.add('hidden');
+            document.getElementById('view-kendala').classList.add('hidden');
+
+            document.getElementById(`view-${tabName}`).classList.remove('hidden');
+
+            if (tabName === 'dashboard') {
+                renderCharts();
+            } else if (tabName === 'subkon') {
+                renderSubkonView();
+            } else if (tabName === 'kendala') {
+                renderKendalaView();
+            }
+        }
+
+        function populateFilterOptions() {
+            const subkons = [...new Set(mainDataset.map(d => d.subkon).filter(Boolean))].sort();
+            const kelurahans = [...new Set(mainDataset.map(d => d.kelurahan).filter(Boolean))].sort();
+            const jenisPekerjaans = [...new Set(mainDataset.map(d => d.jenis).filter(Boolean))].sort();
+            const abs = [...new Set(mainDataset.map(d => d.ab).filter(Boolean))].sort();
+
+            fillSelect('filterSubkon', subkons, 'Semua Subkon');
+            fillSelect('filterKelurahan', kelurahans, 'Semua Kelurahan');
+            fillSelect('filterJenisPekerjaan', jenisPekerjaans, 'Semua Jenis Pekerjaan');
+            fillSelect('filterAB', abs, 'Semua AB');
+        }
+
+        function fillSelect(elementId, items, defaultLabel) {
+            const select = document.getElementById(elementId);
+            const currentVal = select.value;
+            select.innerHTML = `<option value="">${defaultLabel}</option>`;
+            items.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item;
+                opt.textContent = item;
+                opt.className = "bg-[#170b2c] text-slate-200";
+                select.appendChild(opt);
+            });
+            select.value = currentVal;
+        }
+
+        function applyFilters() {
+            const search = document.getElementById('filterSearch').value.toLowerCase();
+            const subkon = document.getElementById('filterSubkon').value;
+            const kelurahan = document.getElementById('filterKelurahan').value;
+            const status = document.getElementById('filterStatus').value;
+            const jenis = document.getElementById('filterJenisPekerjaan').value;
+            const ab = document.getElementById('filterAB').value;
+            const tglMulai = document.getElementById('filterTglMulai').value;
+            const tglSelesai = document.getElementById('filterTglSelesai').value;
+
+            filteredData = mainDataset.filter(item => {
+                const matchesSearch = !search ||
+                    (item.faId && item.faId.toLowerCase().includes(search)) ||
+                    (item.nama && item.nama.toLowerCase().includes(search)) ||
+                    (item.alamat && item.alamat.toLowerCase().includes(search));
+
+                const matchesSubkon = !subkon || item.subkon === subkon;
+                const matchesKelurahan = !kelurahan || item.kelurahan === kelurahan;
+                const matchesStatus = !status || item.status === status;
+                const matchesJenis = !jenis || item.jenis === jenis;
+                const matchesAB = !ab || item.ab === ab;
+
+                let matchesDate = true;
+                if (item.rencanaTgl) {
+                    const itemDate = item.rencanaTgl.slice(0, 10);
+                    if (tglMulai) {
+                        matchesDate = matchesDate && (itemDate >= tglMulai);
+                    }
+                    if (tglSelesai) {
+                        matchesDate = matchesDate && (itemDate <= tglSelesai);
+                    }
+                } else if (tglMulai || tglSelesai) {
+                    matchesDate = false;
+                }
+
+                return matchesSearch && matchesSubkon && matchesKelurahan && matchesStatus && matchesJenis && matchesAB && matchesDate;
+            });
+
+            currentPage = 1;
+            updateDashboardKPIs();
+            renderTable();
+            renderCharts();
+            renderSubkonView();
+            renderKendalaView();
+            document.getElementById('badgeTotalRecords').innerText = filteredData.length;
+        }
+
+        function resetFilters() {
+            document.getElementById('filterSearch').value = '';
+            document.getElementById('filterSubkon').value = '';
+            document.getElementById('filterKelurahan').value = '';
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterJenisPekerjaan').value = '';
+            document.getElementById('filterAB').value = '';
+            document.getElementById('filterTglMulai').value = '';
+            document.getElementById('filterTglSelesai').value = '';
+            applyFilters();
+        }
+
+        function updateDashboardKPIs() {
+            const total = filteredData.length;
+            const done = filteredData.filter(d => d.status === 'DONE').length;
+            const pending = filteredData.filter(d => d.status === 'PENDING').length;
+            const cancel = filteredData.filter(d => d.status === 'CANCEL').length;
+            const sisa = pending + cancel;
+            const percent = total > 0 ? ((done / total) * 100).toFixed(1) : 0;
+
+            document.getElementById('kpiTotal').innerText = total;
+            document.getElementById('kpiDone').innerText = done;
+            document.getElementById('kpiPending').innerText = pending;
+            document.getElementById('kpiCancel').innerText = cancel;
+            document.getElementById('kpiPercent').innerText = `${percent}%`;
+            document.getElementById('kpiSisa').innerText = sisa;
+            document.getElementById('kpiProgressBar').style.width = `${percent}%`;
+        }
+
+        function renderCharts() {
+            function createGradient(ctx, colorStart, colorEnd) {
+                const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                gradient.addColorStop(0, colorStart);
+                gradient.addColorStop(1, colorEnd);
+                return gradient;
+            }
+
+            const ctxStatus = document.getElementById('chartStatus').getContext('2d');
+            const ctxSubkon = document.getElementById('chartSubkon').getContext('2d');
+            const ctxAB = document.getElementById('chartAB').getContext('2d');
+            const ctxTimeline = document.getElementById('chartTimeline').getContext('2d');
+            const ctxWeekly = document.getElementById('chartWeekly').getContext('2d');
+
+            const statusCounts = {
+                DONE: filteredData.filter(d => d.status === 'DONE').length,
+                PENDING: filteredData.filter(d => d.status === 'PENDING').length,
+                CANCEL: filteredData.filter(d => d.status === 'CANCEL').length
+            };
+
+            const gradDone = createGradient(ctxStatus, '#c084fc', '#7c3aed');
+            const gradPending = createGradient(ctxStatus, '#a855f7', '#581c87');
+            const gradCancel = createGradient(ctxStatus, '#6b21a8', '#3b0764');
+
+            if (chartStatusInst) chartStatusInst.destroy();
+            chartStatusInst = new Chart(ctxStatus, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Done (Selesai)', 'Pending (Proses)', 'Cancel (Batal)'],
+                    datasets: [{
+                        data: [statusCounts.DONE, statusCounts.PENDING, statusCounts.CANCEL],
+                        backgroundColor: [gradDone, gradPending, gradCancel],
+                        borderWidth: 2,
+                        borderColor: '#0f051d'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 }, color: '#d8b4fe' } } }
+                }
+            });
+
+            const subkons = [...new Set(mainDataset.map(d => d.subkon).filter(Boolean))];
+            const subkonDone = subkons.map(s => filteredData.filter(d => d.subkon === s && d.status === 'DONE').length);
+            const subkonPending = subkons.map(s => filteredData.filter(d => d.subkon === s && d.status === 'PENDING').length);
+            const subkonCancel = subkons.map(s => filteredData.filter(d => d.subkon === s && d.status === 'CANCEL').length);
+
+            const gradSubkonDone = createGradient(ctxSubkon, '#c084fc', '#7c3aed');
+            const gradSubkonPending = createGradient(ctxSubkon, '#9333ea', '#581c87');
+            const gradSubkonCancel = createGradient(ctxSubkon, '#7e22ce', '#3b0764');
+
+            if (chartSubkonInst) chartSubkonInst.destroy();
+            chartSubkonInst = new Chart(ctxSubkon, {
+                type: 'bar',
+                data: {
+                    labels: subkons,
+                    datasets: [
+                        { label: 'Done', data: subkonDone, backgroundColor: gradSubkonDone, borderRadius: 4 },
+                        { label: 'Pending', data: subkonPending, backgroundColor: gradSubkonPending, borderRadius: 4 },
+                        { label: 'Cancel', data: subkonCancel, backgroundColor: gradSubkonCancel, borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { 
+                        x: { stacked: true, ticks: { color: '#d8b4fe' } }, 
+                        y: { stacked: true, beginAtZero: true, ticks: { color: '#d8b4fe' } } 
+                    },
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 }, color: '#d8b4fe' } } }
+                }
+            });
+
+            const abs = [...new Set(filteredData.map(d => d.ab).filter(Boolean))].sort();
+            const abCounts = abs.map(a => filteredData.filter(d => d.ab === a).length);
+            const gradAB = createGradient(ctxAB, '#c084fc', '#6d28d9');
+
+            if (chartABInst) chartABInst.destroy();
+            chartABInst = new Chart(ctxAB, {
+                type: 'bar',
+                data: {
+                    labels: abs,
+                    datasets: [{
+                        label: 'Total SR',
+                        data: abCounts,
+                        backgroundColor: gradAB,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { 
+                        x: { ticks: { color: '#d8b4fe' } },
+                        y: { beginAtZero: true, ticks: { color: '#d8b4fe' } } 
+                    }
+                }
+            });
+
+            const doneItems = filteredData.filter(d => d.status === 'DONE' && d.tglDikerjakan);
+            const doneDates = [...new Set(doneItems.map(d => d.tglDikerjakan).filter(Boolean))].sort();
+            const doneCounts = doneDates.map(dt => doneItems.filter(d => d.tglDikerjakan === dt).length);
+
+            const gradTimelineFill = ctxTimeline.createLinearGradient(0, 0, 0, 200);
+            gradTimelineFill.addColorStop(0, 'rgba(192, 132, 252, 0.4)');
+            gradTimelineFill.addColorStop(1, 'rgba(15, 5, 29, 0.05)');
+
+            if (chartTimelineInst) chartTimelineInst.destroy();
+            chartTimelineInst = new Chart(ctxTimeline, {
+                type: 'line',
+                data: {
+                    labels: doneDates.length > 0 ? doneDates : ['Tidak Ada Data'],
+                    datasets: [{
+                        label: 'FA Done',
+                        data: doneCounts.length > 0 ? doneCounts : [0],
+                        borderColor: '#c084fc',
+                        backgroundColor: gradTimelineFill,
+                        fill: true,
+                        tension: 0.35,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#e879f9',
+                        pointBorderColor: '#0f051d',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { 
+                        x: { ticks: { color: '#d8b4fe', font: { size: 10 } } },
+                        y: { beginAtZero: true, ticks: { precision: 0, color: '#d8b4fe' } } 
+                    }
+                }
+            });
+
+            const weeklyMap = {};
+            filteredData.filter(d => d.status === 'DONE' && d.tglDikerjakan).forEach(d => {
+                const dateObj = new Date(d.tglDikerjakan);
+                if (!isNaN(dateObj)) {
+                    const firstDayOfYear = new Date(dateObj.getFullYear(), 0, 1);
+                    const pastDaysOfYear = (dateObj - firstDayOfYear) / 86400000;
+                    const weekNum = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+                    const weekKey = `Minggu ${weekNum}`;
+                    weeklyMap[weekKey] = (weeklyMap[weekKey] || 0) + 1;
+                }
+            });
+
+            const weekLabels = Object.keys(weeklyMap).sort();
+            const weekCounts = weekLabels.map(w => weeklyMap[w]);
+            const gradWeekly = createGradient(ctxWeekly, '#e879f9', '#7c3aed');
+
+            if (chartWeeklyInst) chartWeeklyInst.destroy();
+            chartWeeklyInst = new Chart(ctxWeekly, {
+                type: 'bar',
+                data: {
+                    labels: weekLabels.length > 0 ? weekLabels : ['Belum Ada Data'],
+                    datasets: [{
+                        label: 'Selesai Mingguan',
+                        data: weekCounts.length > 0 ? weekCounts : [0],
+                        backgroundColor: gradWeekly,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { 
+                        x: { ticks: { color: '#d8b4fe', font: { size: 10 } } },
+                        y: { beginAtZero: true, ticks: { precision: 0, color: '#d8b4fe' } } 
+                    }
+                }
+            });
+        }
+
+        function renderKendalaView() {
+            const kendalaItems = filteredData.filter(d => d.status === 'PENDING' || d.status === 'CANCEL');
+            document.getElementById('badgeTotalKendala').innerText = `${kendalaItems.length} Kasus Tercatat`;
+
+            const summaryMap = {};
+            kendalaItems.forEach(item => {
+                let ket = item.keterangan ? item.keterangan.trim() : 'Tidak ada keterangan';
+                summaryMap[ket] = (summaryMap[ket] || 0) + 1;
+            });
+
+            const sortedKeys = Object.keys(summaryMap).sort((a, b) => summaryMap[b] - summaryMap[a]);
+            const summaryCounts = sortedKeys.map(k => summaryMap[k]);
+            const totalKendala = kendalaItems.length;
+
+            const tbodySummary = document.getElementById('tableKendalaSummary');
+            tbodySummary.innerHTML = '';
+            if (sortedKeys.length === 0) {
+                tbodySummary.innerHTML = `<tr><td colspan="3" class="text-center py-6 text-purple-300/50">Tidak ada kendala / data pending & cancel.</td></tr>`;
+            } else {
+                sortedKeys.forEach(ket => {
+                    const count = summaryMap[ket];
+                    const percent = totalKendala > 0 ? ((count / totalKendala) * 100).toFixed(1) : 0;
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-purple-950/40 transition-colors border-b border-purple-950/60';
+                    tr.innerHTML = `
+                        <td class="p-3 font-medium text-slate-200">${ket}</td>
+                        <td class="p-3 text-center font-bold text-purple-300">${count} Kasus</td>
+                        <td class="p-3 text-center text-purple-300/80">${percent}%</td>
+                    `;
+                    tbodySummary.appendChild(tr);
+                });
+            }
+
+            const tbodyDetail = document.getElementById('tableKendalaDetail');
+            tbodyDetail.innerHTML = '';
+            if (kendalaItems.length === 0) {
+                tbodyDetail.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-purple-300/50">Tidak ada data pelanggan pending atau cancel.</td></tr>`;
+            } else {
+                kendalaItems.forEach((item, idx) => {
+                    const statusBadge = item.status === 'PENDING' 
+                        ? '<span class="px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-800/60 font-bold">PENDING</span>'
+                        : '<span class="px-2 py-0.5 rounded bg-purple-950/60 text-purple-400 border border-purple-900/60 font-bold">CANCEL</span>';
+
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-purple-950/40 transition-colors border-b border-purple-950/60';
+                    tr.innerHTML = `
+                        <td class="p-3 text-center text-purple-300/60">${idx + 1}</td>
+                        <td class="p-3 font-semibold text-purple-300">${item.faId}</td>
+                        <td class="p-3 font-medium text-slate-200">${item.nama}</td>
+                        <td class="p-3 text-purple-300/80">${item.subkon}</td>
+                        <td class="p-3 text-center">${statusBadge}</td>
+                        <td class="p-3 text-purple-200 font-medium">${item.keterangan || '-'}</td>
+                    `;
+                    tbodyDetail.appendChild(tr);
+                });
+            }
+
+            const ctxKendala = document.getElementById('chartKendala').getContext('2d');
+            if (chartKendalaInst) chartKendalaInst.destroy();
+
+            const purpleColors = ['#c084fc', '#a855f7', '#9333ea', '#7e22ce', '#6b21a8', '#581c87', '#4c1d95'];
+            const bgColors = sortedKeys.map((_, i) => purpleColors[i % purpleColors.length]);
+
+            chartKendalaInst = new Chart(ctxKendala, {
+                type: 'doughnut',
+                data: {
+                    labels: sortedKeys.length > 0 ? sortedKeys : ['Tidak Ada Kendala'],
+                    datasets: [{
+                        data: summaryCounts.length > 0 ? summaryCounts : [1],
+                        backgroundColor: bgColors,
+                        borderWidth: 2,
+                        borderColor: '#0f051d'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 }, color: '#d8b4fe' } } 
+                    }
+                }
+            });
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            const mobileContainer = document.getElementById('mobileCardContainer');
+            tbody.innerHTML = '';
+            mobileContainer.innerHTML = '';
+
+            const total = filteredData.length;
+            const startIdx = (currentPage - 1) * pageSize;
+            const endIdx = Math.min(startIdx + pageSize, total);
+            const pageData = filteredData.slice(startIdx, endIdx);
+
+            if (pageData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="14" class="text-center py-8 text-purple-300/50">Tidak ada data yang ditemukan.</td></tr>`;
+                mobileContainer.innerHTML = `<div class="text-center py-8 text-purple-300/50">Tidak ada data yang ditemukan.</div>`;
+            } else {
+                pageData.forEach((item, index) => {
+                    const globalIndex = mainDataset.findIndex(d => d.faId === item.faId);
+                    const rowNo = startIdx + index + 1;
+
+                    let statusBadgeClass = '';
+                    if (item.status === 'DONE') statusBadgeClass = 'bg-purple-950/80 text-purple-300 border-purple-700/60';
+                    else if (item.status === 'PENDING') statusBadgeClass = 'bg-purple-950/60 text-purple-300/80 border-purple-800/60';
+                    else if (item.status === 'CANCEL') statusBadgeClass = 'bg-purple-950/40 text-purple-400/80 border-purple-900/60';
+
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-purple-950/40 transition-colors border-b border-purple-950/60';
+                    tr.innerHTML = `
+                        <td class="p-3 text-center font-medium text-purple-300/60">${rowNo}</td>
+                        <td class="p-3 font-semibold text-purple-300">${item.faId || '-'}</td>
+                        <td class="p-3 font-medium text-slate-200">${item.nama || '-'}</td>
+                        <td class="p-3 text-purple-300/70 max-w-xs truncate" title="${item.alamat}">${item.alamat || '-'}</td>
+                        <td class="p-3 text-purple-300/70">${item.kelurahan || '-'}</td>
+                        <td class="p-3 text-purple-300/70">${item.noHp || '-'}</td>
+                        <td class="p-3 font-medium text-purple-200">${item.subkon || '-'}</td>
+                        <td class="p-3 text-purple-300/70">${item.jenis || '-'}</td>
+                        <td class="p-3 text-purple-300/70">${item.ab || '-'}</td>
+                        <td class="p-3 text-purple-300/70">${item.rencanaTgl || '-'}</td>
+                        <td class="p-3 text-purple-300/70">${item.tglDikerjakan || '-'}</td>
+                        <td class="p-3 text-center">
+                            <select onchange="updateRowStatus(${globalIndex}, this.value)" class="text-[11px] font-bold rounded-md px-2 py-1 border shadow-xs transition-all bg-[#0f051d] ${statusBadgeClass}">
+                                <option value="DONE" ${item.status === 'DONE' ? 'selected' : ''} class="bg-[#170b2c] text-purple-300">DONE</option>
+                                <option value="PENDING" ${item.status === 'PENDING' ? 'selected' : ''} class="bg-[#170b2c] text-purple-300">PENDING</option>
+                                <option value="CANCEL" ${item.status === 'CANCEL' ? 'selected' : ''} class="bg-[#170b2c] text-purple-300">CANCEL</option>
+                            </select>
+                        </td>
+                        <td class="p-3 text-purple-200 font-medium max-w-xs truncate" title="${item.keterangan}">${item.keterangan || '-'}</td>
+                        <td class="p-3 text-center sticky right-0 bg-[#170b2c] border-l border-purple-900/60">
+                            <div class="flex items-center justify-center gap-1">
+                                <button onclick="editRecord(${globalIndex})" class="p-1.5 text-purple-300/70 hover:text-purple-300 hover:bg-purple-950 rounded transition-colors" title="Edit Data">
+                                    <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="openConfirmModal(${globalIndex})" class="p-1.5 text-purple-300/70 hover:text-purple-400 hover:bg-purple-950/60 rounded transition-colors" title="Hapus Data">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+
+                    const card = document.createElement('div');
+                    card.className = 'p-4 space-y-3 bg-card-gradient rounded-lg border border-purple-900/50 shadow-md my-2';
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-purple-300">${item.faId}</span>
+                            <select onchange="updateRowStatus(${globalIndex}, this.value)" class="text-xs font-bold rounded px-2 py-1 border bg-[#0f051d] ${statusBadgeClass}">
+                                <option value="DONE" ${item.status === 'DONE' ? 'selected' : ''}>DONE</option>
+                                <option value="PENDING" ${item.status === 'PENDING' ? 'selected' : ''}>PENDING</option>
+                                <option value="CANCEL" ${item.status === 'CANCEL' ? 'selected' : ''}>CANCEL</option>
+                            </select>
+                        </div>
+                        <div>
+                            <p class="font-bold text-slate-100 text-sm">${item.nama}</p>
+                            <p class="text-purple-300/70 text-xs">${item.alamat} (${item.kelurahan})</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-[11px] text-purple-300/70 pt-2 border-t border-purple-950">
+                            <div><span class="font-semibold text-slate-300">Subkon:</span> ${item.subkon}</div>
+                            <div><span class="font-semibold text-slate-300">AB:</span> ${item.ab}</div>
+                            <div class="col-span-2"><span class="font-semibold text-slate-300">Kendala:</span> <span class="text-purple-200">${item.keterangan || '-'}</span></div>
+                        </div>
+                        <div class="flex justify-end gap-2 pt-2 border-t border-purple-950">
+                            <button onclick="editRecord(${globalIndex})" class="px-3 py-1 bg-purple-950 text-purple-300 font-semibold rounded text-xs flex items-center gap-1 border border-purple-800/50">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Edit
+                            </button>
+                            <button onclick="openConfirmModal(${globalIndex})" class="px-3 py-1 bg-purple-950/60 text-purple-300 font-semibold rounded text-xs flex items-center gap-1 border border-purple-800/50">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Hapus
+                            </button>
+                        </div>
+                    `;
+                    mobileContainer.appendChild(card);
+                });
+            }
+
+            document.getElementById('paginationInfo').innerText = total > 0 
+                ? `Menampilkan ${startIdx + 1} - ${endIdx} dari ${total} data`
+                : 'Menampilkan 0 - 0 dari 0 data';
+
+            renderPaginationControls(total);
+            lucide.createIcons();
+        }
+
+        function renderPaginationControls(total) {
+            const container = document.getElementById('paginationControls');
+            container.innerHTML = '';
+            const totalPages = Math.ceil(total / pageSize);
+
+            if (totalPages <= 1) return;
+
+            const prevBtn = document.createElement('button');
+            prevBtn.className = `px-2.5 py-1.5 rounded-md border text-xs font-medium transition-colors ${currentPage === 1 ? 'border-purple-950 text-purple-300/30 cursor-not-allowed' : 'border-purple-900/60 text-purple-300 hover:bg-purple-950'}`;
+            prevBtn.innerHTML = '<i data-lucide="chevron-left" class="w-4 h-4"></i>';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.onclick = () => { if (currentPage > 1) { currentPage--; renderTable(); } };
+            container.appendChild(prevBtn);
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+                    const pageBtn = document.createElement('button');
+                    pageBtn.className = `px-3 py-1 rounded-md text-xs font-semibold transition-colors ${i === currentPage ? 'bg-gradient-to-r from-purple-600 to-violet-600 text-white' : 'border border-purple-900/60 text-purple-300 hover:bg-purple-950'}`;
+                    pageBtn.innerText = i;
+                    pageBtn.onclick = () => { currentPage = i; renderTable(); };
+                    container.appendChild(pageBtn);
+                }
+            }
+
+            const nextBtn = document.createElement('button');
+            nextBtn.className = `px-2.5 py-1.5 rounded-md border text-xs font-medium transition-colors ${currentPage === totalPages ? 'border-purple-950 text-purple-300/30 cursor-not-allowed' : 'border-purple-900/60 text-purple-300 hover:bg-purple-950'}`;
+            nextBtn.innerHTML = '<i data-lucide="chevron-right" class="w-4 h-4"></i>';
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.onclick = () => { if (currentPage < totalPages) { currentPage++; renderTable(); } };
+            container.appendChild(nextBtn);
+        }
+
+        function changePageSize() {
+            pageSize = parseInt(document.getElementById('tablePageSize').value);
+            currentPage = 1;
+            renderTable();
+        }
+
+        function sortTable(columnKey) {
+            if (sortColumn === columnKey) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = columnKey;
+                sortDirection = 'asc';
+            }
+
+            filteredData.sort((a, b) => {
+                let valA = a[columnKey] || '';
+                let valB = b[columnKey] || '';
+                return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            });
+
+            renderTable();
+        }
+
+        function updateRowStatus(index, newStatus) {
+            if (index >= 0 && index < mainDataset.length) {
+                mainDataset[index].status = newStatus;
+                applyFilters();
+                updateLastTimestamp();
+            }
+        }
+
+        function renderSubkonView() {
+            const container = document.getElementById('subkonCardsContainer');
+            container.innerHTML = '';
+
+            const subkons = [...new Set(mainDataset.map(d => d.subkon).filter(Boolean))];
+            
+            const subkonStats = subkons.map(name => {
+                const subkonItems = filteredData.filter(d => d.subkon === name);
+                const total = subkonItems.length;
+                const done = subkonItems.filter(d => d.status === 'DONE').length;
+                const pending = subkonItems.filter(d => d.status === 'PENDING').length;
+                const cancel = subkonItems.filter(d => d.status === 'CANCEL').length;
+                const percent = total > 0 ? parseFloat(((done / total) * 100).toFixed(1)) : 0;
+                const pendingItems = subkonItems.filter(d => d.status !== 'DONE');
+
+                return { name, total, done, pending, cancel, percent, pendingItems };
+            });
+
+            subkonStats.sort((a, b) => b.percent - a.percent);
+
+            subkonStats.forEach((stat, idx) => {
+                const card = document.createElement('div');
+                card.className = 'bg-card-gradient rounded-xl shadow-lg border border-purple-900/40 overflow-hidden flex flex-col justify-between';
+                
+                let rankBadge = '';
+                if (idx === 0) rankBadge = '<span class="bg-purple-950 text-purple-300 border border-purple-700/60 text-xs px-2.5 py-0.5 rounded-full font-bold">🥇 Peringkat 1</span>';
+                else if (idx === 1) rankBadge = '<span class="bg-purple-950/70 text-purple-300/80 border border-purple-800/60 text-xs px-2.5 py-0.5 rounded-full font-bold">🥈 Peringkat 2</span>';
+                else if (idx === 2) rankBadge = '<span class="bg-purple-950/40 text-purple-300/70 border border-purple-900/60 text-xs px-2.5 py-0.5 rounded-full font-bold">🥉 Peringkat 3</span>';
+
+                let pendingRowsHtml = stat.pendingItems.slice(0, 5).map(item => `
+                    <div class="flex items-center justify-between text-xs py-1.5 border-b border-purple-950/60 last:border-0">
+                        <div>
+                            <span class="font-bold text-slate-200 block">${item.faId} - ${item.nama}</span>
+                            <span class="text-[10px] text-purple-300/60">${item.kelurahan} | Kendala: ${item.keterangan || '-'}</span>
+                        </div>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-800/60">${item.status}</span>
+                    </div>
+                `).join('');
+
+                if (stat.pendingItems.length === 0) {
+                    pendingRowsHtml = '<p class="text-xs text-purple-300 py-2 font-medium">Semua pekerjaan Subkon ini telah selesai (100% DONE)!</p>';
+                }
+
+                card.innerHTML = `
+                    <div class="p-5 border-b border-purple-900/40 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-lg font-bold text-white">${stat.name}</h3>
+                                <p class="text-xs text-purple-300/70">Subkontraktor Pekerjaan SR</p>
+                            </div>
+                            ${rankBadge}
+                        </div>
+
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs font-semibold">
+                                <span class="text-purple-300/70">Penyelesaian</span>
+                                <span class="text-purple-300 font-bold">${stat.percent}%</span>
+                            </div>
+                            <div class="w-full bg-[#0f051d] h-2.5 rounded-full overflow-hidden border border-purple-950">
+                                <div class="bg-gradient-to-r from-purple-500 to-fuchsia-500 h-full rounded-full transition-all duration-500" style="width: ${stat.percent}%"></div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-4 gap-2 text-center pt-2">
+                            <div class="bg-[#0f051d]/80 p-2 rounded-lg border border-purple-950">
+                                <span class="text-[10px] text-purple-300/60 font-medium block">Total</span>
+                                <span class="text-sm font-bold text-white">${stat.total}</span>
+                            </div>
+                            <div class="bg-purple-950/60 p-2 rounded-lg border border-purple-900/50">
+                                <span class="text-[10px] text-purple-300 font-medium block">Done</span>
+                                <span class="text-sm font-bold text-purple-300">${stat.done}</span>
+                            </div>
+                            <div class="bg-purple-950/40 p-2 rounded-lg border border-purple-900/40">
+                                <span class="text-[10px] text-purple-300/80 font-medium block">Pending</span>
+                                <span class="text-sm font-bold text-purple-200">${stat.pending}</span>
+                            </div>
+                            <div class="bg-purple-950/20 p-2 rounded-lg border border-purple-900/30">
+                                <span class="text-[10px] text-purple-300/60 font-medium block">Cancel</span>
+                                <span class="text-sm font-bold text-purple-300/80">${stat.cancel}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-[#0f051d]/40 flex-1">
+                        <h4 class="text-xs font-bold text-slate-300 mb-2">Daftar Belum Selesai (Sisa: ${stat.pendingItems.length}):</h4>
+                        <div class="space-y-1 max-h-48 overflow-y-auto pr-1">
+                            ${pendingRowsHtml}
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+
+            lucide.createIcons();
+        }
+
+        function openUploadModal() {
+            document.getElementById('uploadModal').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('uploadModalContent').classList.remove('scale-95', 'opacity-0');
+            }, 10);
+        }
+
+        function closeUploadModal() {
+            document.getElementById('uploadModalContent').classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                document.getElementById('uploadModal').classList.add('hidden');
+                document.getElementById('excelFileInput').value = '';
+                document.getElementById('uploadPreviewBox').classList.add('hidden');
+                document.getElementById('btnProcessImport').disabled = true;
+                document.getElementById('btnProcessImport').classList.add('opacity-50', 'cursor-not-allowed');
+            }, 200);
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonRows = XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
+
+                    if (jsonRows.length === 0) {
+                        alert("File Excel kosong atau format tidak sesuai!");
+                        return;
+                    }
+
+                    parsedExcelRows = mapRowsToDataset(jsonRows);
+
+                    document.getElementById('previewFileName').innerText = file.name;
+                    document.getElementById('previewRowCount').innerText = `${parsedExcelRows.length} baris data berhasil dibaca`;
+                    document.getElementById('uploadPreviewBox').classList.remove('hidden');
+
+                    const btn = document.getElementById('btnProcessImport');
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                } catch (err) {
+                    alert("Gagal membaca file Excel: " + err.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processImport() {
+            if (parsedExcelRows.length === 0) return;
+
+            const mode = document.querySelector('input[name="importMode"]:checked').value;
+
+            if (mode === 'REPLACE') {
+                if (!confirm("Apakah Anda yakin ingin mengganti SELURUH data lama dengan data dari Excel ini?")) return;
+                mainDataset = [...parsedExcelRows];
+            } else {
+                parsedExcelRows.forEach(newRow => {
+                    const existingIndex = mainDataset.findIndex(d => d.faId === newRow.faId && newRow.faId !== "");
+                    if (existingIndex !== -1) {
+                        mainDataset[existingIndex] = { ...mainDataset[existingIndex], ...newRow };
+                    } else {
+                        mainDataset.push(newRow);
+                    }
+                });
+            }
+
+            mainDataset.forEach((item, idx) => item.no = idx + 1);
+
+            populateFilterOptions();
+            applyFilters();
+            updateLastTimestamp();
+            closeUploadModal();
+            alert(`Berhasil mengimpor ${parsedExcelRows.length} data!`);
+        }
+
+        function exportDataToExcel() {
+            if (filteredData.length === 0) {
+                alert("Tidak ada data untuk diexport!");
+                return;
+            }
+
+            const exportFormat = filteredData.map((d, i) => ({
+                "NO": i + 1,
+                "FA ID": d.faId,
+                "NAMA PELANGGAN": d.nama,
+                "ALAMAT LENGKAP": d.alamat,
+                "KELURAHAN": d.kelurahan,
+                "NO HP PELANGGAN": d.noHp,
+                "SUBKON": d.subkon,
+                "JENIS PEKERJAAN": d.jenis,
+                "AB": d.ab,
+                "RENCANA TGL KERJA": d.rencanaTgl,
+                "TANGGAL DIKERJAKAN": d.tglDikerjakan,
+                "STATUS PEKERJAAN": d.status,
+                "KETERANGAN / KENDALA": d.keterangan
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(exportFormat);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Monitoring SR");
+
+            const dateStr = new Date().toISOString().slice(0, 10);
+            XLSX.writeFile(workbook, `Monitoring_SR_Export_${dateStr}.xlsx`);
+        }
+
+        function openFormModal() {
+            document.getElementById('editIndex').value = "-1";
+            document.getElementById('srForm').reset();
+            document.getElementById('formModalTitle').innerText = "Tambah Data Sambungan Rumah";
+            document.getElementById('formModal').classList.remove('hidden');
+        }
+
+        function editRecord(globalIndex) {
+            const item = mainDataset[globalIndex];
+            if (!item) return;
+
+            document.getElementById('editIndex').value = globalIndex;
+            document.getElementById('formFaId').value = item.faId || '';
+            document.getElementById('formNama').value = item.nama || '';
+            document.getElementById('formAlamat').value = item.alamat || '';
+            document.getElementById('formKelurahan').value = item.kelurahan || '';
+            document.getElementById('formNoHp').value = item.noHp || '';
+            document.getElementById('formSubkon').value = item.subkon || '';
+            document.getElementById('formJenisPekerjaan').value = item.jenis || '';
+            document.getElementById('formAB').value = item.ab || '';
+            document.getElementById('formStatus').value = item.status || 'PENDING';
+            document.getElementById('formRencanaTgl').value = item.rencanaTgl || '';
+            document.getElementById('formTglDikerjakan').value = item.tglDikerjakan || '';
+            document.getElementById('formKeterangan').value = item.keterangan || '';
+
+            document.getElementById('formModalTitle').innerText = "Edit Data Sambungan Rumah";
+            document.getElementById('formModal').classList.remove('hidden');
+        }
+
+        function closeFormModal() {
+            document.getElementById('formModal').classList.add('hidden');
+        }
+
+        function saveRecord(event) {
+            event.preventDefault();
+            const editIdx = parseInt(document.getElementById('editIndex').value);
+
+            const recordData = {
+                faId: document.getElementById('formFaId').value.trim(),
+                nama: document.getElementById('formNama').value.trim(),
+                alamat: document.getElementById('formAlamat').value.trim(),
+                kelurahan: document.getElementById('formKelurahan').value.trim(),
+                noHp: document.getElementById('formNoHp').value.trim(),
+                subkon: document.getElementById('formSubkon').value.trim(),
+                jenis: document.getElementById('formJenisPekerjaan').value.trim(),
+                ab: document.getElementById('formAB').value.trim(),
+                status: document.getElementById('formStatus').value,
+                rencanaTgl: document.getElementById('formRencanaTgl').value,
+                tglDikerjakan: document.getElementById('formTglDikerjakan').value,
+                keterangan: document.getElementById('formKeterangan').value.trim()
+            };
+
+            if (editIdx >= 0) {
+                mainDataset[editIdx] = { ...mainDataset[editIdx], ...recordData };
+            } else {
+                recordData.no = mainDataset.length + 1;
+                mainDataset.push(recordData);
+            }
+
+            populateFilterOptions();
+            applyFilters();
+            updateLastTimestamp();
+            closeFormModal();
+        }
+
+        function openConfirmModal(globalIndex) {
+            itemToDeleteIndex = globalIndex;
+            document.getElementById('confirmModal').classList.remove('hidden');
+            document.getElementById('btnConfirmDelete').onclick = () => {
+                if (itemToDeleteIndex >= 0) {
+                    mainDataset.splice(itemToDeleteIndex, 1);
+                    mainDataset.forEach((item, idx) => item.no = idx + 1);
+                    populateFilterOptions();
+                    applyFilters();
+                    updateLastTimestamp();
+                }
+                closeConfirmModal();
+            };
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.add('hidden');
+            itemToDeleteIndex = -1;
+        }
+    </script>
+</body>
+</html>
