@@ -1,80 +1,77 @@
-// Ganti URL di bawah ini dengan link CSV yang Anda dapatkan dari Google Spreadsheet
-const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/102xqbuIstUGkxxldOBCv161fjO16rnTRhOQUU-wFS7w/export?format=csv';
-
-// Fungsi untuk mengambil dan memuat data dari Google Spreadsheet
-async function loadDataFromGoogleSheet() {
-    try {
-        const response = await fetch(GOOGLE_SHEET_CSV_URL);
-        if (!response.ok) {
-            throw new Error('Gagal terhubung ke Google Spreadsheet');
-        }
-        const csvText = await response.text();
-        
-        // Mengubah teks CSV menjadi format JSON / Array Object
-        parseCSVToDataset(csvText);
-        
-    } catch (error) {
-        console.error("Error memuat data spreadsheet:", error);
-        alert("Gagal memuat data dari Google Spreadsheet. Menggunakan data lokal cadangan.");
-    }
-}
-
-// Fungsi parser CSV sederhana untuk mencocokkan kolom dashboard Anda
-function parseCSVToDataset(csvText) {
-    const lines = csvText.split('\n');
-    if (lines.length < 2) return;
-
-    // Baris pertama adalah Header / Nama Kolom
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-    
-    let loadedData = [];
-
-    for (let i = 1; i < lines.length; i++) {
-        let line = lines[i].trim();
-        if (!line) continue;
-
-        // Penanganan sederhana untuk data CSV yang mungkin mengandung koma di dalam tanda kutip
-        let row = [];
-        let inQuotes = false;
-        let currentVal = '';
-        for (let char of line) {
-            if (char === '"') {
-                inQuotes = !inQuotes;
-            } else if (char === ',' && !inQuotes) {
-                row.push(currentVal.trim().replace(/^"|"$/g, ''));
-                currentVal = '';
-            } else {
-                currentVal += char;
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Monitoring Sambungan Langsung (SL)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95',
+                        }
+                    }
+                }
             }
         }
-        row.push(currentVal.trim().replace(/^"|"$/g, ''));
+    </script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS (XLSX) CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f051d; }
+        ::-webkit-scrollbar-thumb { background: #2e1065; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4c1d95; }
 
-        // Mapping baris CSV ke struktur data dashboard Anda
-        let item = {
-            no: i,
-            faId: row[1] || `FA-${1000 + i}`,
-            nama: row[2] || '',
-            alamat: row[3] || '',
-            kelurahan: row[4] || '',
-            noHp: row[5] || '',
-            subkon: row[6] || '',
-            jenis: row[7] || '',
-            ab: row[8] || '',
-            rencanaTgl: parseExcelDate(row[9] || ''),
-            tglDikerjakan: parseExcelDate(row[10] || ''),
-            status: (row[11] || 'PENDING').toUpperCase().trim(),
-            keterangan: row[12] || ''
-        };
-
-        if (item.faId && item.faId !== "FA ID") {
-            loadedData.push(item);
+        .bg-card-gradient {
+            background: linear-gradient(145deg, rgba(34, 9, 71, 0.85) 0%, rgba(15, 5, 29, 0.95) 100%);
         }
-    }
+        .bg-navbar-gradient {
+            background: linear-gradient(90deg, #0f051d 0%, #1e1b4b 50%, #2e1065 100%);
+        }
+        .text-gradient-purple {
+            background: linear-gradient(135deg, #c084fc 0%, #e879f9 50%, #f472b6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col antialiased text-slate-200 bg-[#0f051d] min-h-screen">
 
-    if (loadedData.length > 0) {
-        mainDataset = loadedData; // Memperbarui data utama dashboard
-        populateFilterOptions();   // Memperbarui opsi filter dropdown
-        applyFilters();            // Merefresh tampilan tabel dan grafik
-        console.log(`Berhasil memuat ${loadedData.length} data dari Google Spreadsheet!`);
-    }
-}
+    <!-- TOP NAVBAR -->
+    <header class="bg-navbar-gradient text-white sticky top-0 z-30 shadow-lg border-b border-purple-950/80 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-gradient-to-tr from-purple-600 via-violet-600 to-fuchsia-600 p-2.5 rounded-xl text-white shadow-lg shadow-purple-900/40">
+                        <i data-lucide="droplet" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                            <span class="text-gradient-purple">MONITORING RENCANA KERJA SL</span>
+                            <span class="text-xs bg-purple-950 text-purple-300 border border-purple-800/50 px-2 py-0.5 rounded-full font-medium">v3.0 Google Sheets</span>
+                        </h1>
+                        <p class="text-xs text-purple-300/70">Sistem Pengawasan Sambungan Rumah Air Minum</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-3 sm:space-x-4">
+                    <div class="hidden md:flex flex
