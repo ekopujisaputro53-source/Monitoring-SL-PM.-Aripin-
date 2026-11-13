@@ -1,4 +1,4 @@
-<!DOCTYPE index.html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
@@ -28,7 +28,7 @@
     </script>
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- SheetJS (XLSX & CSV) CDN -->
+    <!-- SheetJS (XLSX) CDN -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Font Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -52,13 +52,6 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        @keyframes spin-slow {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        .animate-spin-sync {
-            animation: spin-slow 1s linear infinite;
-        }
     </style>
 </head>
 <body class="h-full flex flex-col antialiased text-slate-200 bg-[#0f051d] min-h-screen">
@@ -74,50 +67,33 @@
                     <div>
                         <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
                             <span class="text-gradient-purple">MONITORING RENCANA KERJA SL</span>
-                            <span class="text-xs bg-purple-950 text-purple-300 border border-purple-800/50 px-2 py-0.5 rounded-full font-medium">v3.2 Google Sheets Live</span>
+                            <span class="text-xs bg-purple-950 text-purple-300 border border-purple-800/50 px-2 py-0.5 rounded-full font-medium">v3.0 Deep Purple</span>
                         </h1>
                         <p class="text-xs text-purple-300/70">Sistem Pengawasan Sambungan Rumah Air Minum</p>
                     </div>
                 </div>
 
-                <div class="flex items-center space-x-2 sm:space-x-3">
-                    <div class="hidden lg:flex flex-col text-right mr-1">
-                        <span class="text-[11px] text-purple-300/70 flex items-center justify-end gap-1">
-                            <i data-lucide="cloud" class="w-3 h-3 text-emerald-400"></i> Status Sinkronisasi:
+                <div class="flex items-center space-x-3 sm:space-x-4">
+                    <div class="hidden md:flex flex-col text-right">
+                        <span class="text-xs text-purple-300/70 flex items-center justify-end gap-1">
+                            <i data-lucide="clock" class="w-3 h-3"></i> Terakhir Diperbarui:
                         </span>
-                        <span id="lastUpdateText" class="text-xs font-semibold text-purple-300">Menunggu sinkronisasi...</span>
+                        <span id="lastUpdateText" class="text-xs font-semibold text-purple-400">Hari ini, 10:45 WIB</span>
                     </div>
 
-                    <!-- TOMBOL SYNC GOOGLE SHEETS -->
-                    <button onclick="syncFromGoogleSheets(true)" id="btnSyncCloud" title="Sinkronkan ulang dari Google Sheets" class="flex items-center gap-2 bg-emerald-700/80 hover:bg-emerald-600 text-white text-xs sm:text-sm font-medium px-3 py-2 rounded-lg transition-all shadow-md shadow-emerald-900/30 border border-emerald-400/30 active:scale-95">
-                        <i data-lucide="refresh-cw" id="iconSyncCloud" class="w-4 h-4"></i>
-                        <span class="hidden sm:inline">Sync Sheets</span>
-                    </button>
-
-                    <!-- TOMBOL PENGATURAN URL SPREADSHEET -->
-                    <button onclick="openSheetConfigModal()" title="Pengaturan Tautan Google Sheets" class="flex items-center justify-center bg-purple-950/90 hover:bg-purple-900 text-purple-300 text-xs p-2 rounded-lg transition-all border border-purple-800/60 active:scale-95">
-                        <i data-lucide="settings" class="w-4 h-4"></i>
-                    </button>
-
-                    <button onclick="openUploadModal()" class="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white text-xs sm:text-sm font-medium px-3 py-2 rounded-lg transition-all shadow-md shadow-purple-900/40 active:scale-95 border border-purple-400/20">
+                    <button onclick="openUploadModal()" class="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white text-xs sm:text-sm font-medium px-3 sm:px-4 py-2 rounded-lg transition-all shadow-md shadow-purple-900/40 active:scale-95 border border-purple-400/20">
                         <i data-lucide="file-up" class="w-4 h-4"></i>
-                        <span class="hidden md:inline">Upload Excel</span>
+                        <span>Upload Excel</span>
                     </button>
 
-                    <button onclick="exportDataToExcel()" class="flex items-center gap-2 bg-violet-800/80 hover:bg-violet-700 text-white text-xs sm:text-sm font-medium px-3 py-2 rounded-lg transition-all shadow-md shadow-violet-900/30 border border-violet-400/20 active:scale-95">
+                    <button onclick="exportDataToExcel()" class="flex items-center gap-2 bg-violet-800/80 hover:bg-violet-700 text-white text-xs sm:text-sm font-medium px-3 sm:px-4 py-2 rounded-lg transition-all shadow-md shadow-violet-900/30 border border-violet-400/20 active:scale-95">
                         <i data-lucide="download" class="w-4 h-4"></i>
-                        <span class="hidden md:inline">Export</span>
+                        <span class="hidden sm:inline">Export Excel</span>
                     </button>
                 </div>
             </div>
         </div>
     </header>
-
-    <!-- STATUS BANNER NOTIFIKASI SYNC -->
-    <div id="syncStatusBanner" class="hidden bg-purple-950/90 border-b border-purple-800/60 text-xs py-2 px-4 text-center text-purple-200 flex items-center justify-center gap-2">
-        <i data-lucide="info" class="w-4 h-4 text-purple-400"></i>
-        <span id="syncStatusBannerText">Menghubungkan ke Google Sheets...</span>
-    </div>
 
     <!-- NAVIGATION TABS -->
     <nav class="bg-[#170b2c]/90 border-b border-purple-950 shadow-md sticky top-16 z-20 backdrop-blur-md">
@@ -160,7 +136,7 @@
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <i data-lucide="search" class="w-4 h-4 text-purple-400/60"></i>
                     </div>
-                    <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Cari FA ID, Pelanggan, Alamat..." class="pl-9 w-full rounded-lg border-purple-900/50 text-xs bg-[#0f051d]/90 text-slate-200 placeholder-purple-300/40 focus:bg-[#0f051d] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-2 border transition-all">
+                    <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Cari FA ID, Pelanggan, Alamat, Kendala..." class="pl-9 w-full rounded-lg border-purple-900/50 text-xs bg-[#0f051d]/90 text-slate-200 placeholder-purple-300/40 focus:bg-[#0f051d] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-2 border transition-all">
                 </div>
 
                 <div>
@@ -196,10 +172,16 @@
                     </select>
                 </div>
 
-                <div class="sm:col-span-2 lg:col-span-2 flex gap-2 items-center">
-                    <input type="date" id="filterTglMulai" onchange="applyFilters()" class="w-full rounded-lg border-purple-900/50 text-xs bg-[#0f051d]/90 text-slate-200 focus:bg-[#0f051d] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-2 border">
+                <div>
+                    <select id="filterKendala" onchange="applyFilters()" class="w-full rounded-lg border-purple-900/50 text-xs bg-[#0f051d]/90 text-slate-200 focus:bg-[#0f051d] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-2 border transition-all">
+                        <option value="">Semua Kendala / Keterangan</option>
+                    </select>
+                </div>
+
+                <div class="flex gap-2 items-center">
+                    <input type="date" id="filterTglMulai" onchange="applyFilters()" title="Tanggal Mulai" class="w-full rounded-lg border-purple-900/50 text-xs bg-[#0f051d]/90 text-slate-200 focus:bg-[#0f051d] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-2 border">
                     <span class="text-xs text-purple-300/60">s/d</span>
-                    <input type="date" id="filterTglSelesai" onchange="applyFilters()" class="w-full rounded-lg border-purple-900/50 text-xs bg-[#0f051d]/90 text-slate-200 focus:bg-[#0f051d] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-2 border">
+                    <input type="date" id="filterTglSelesai" onchange="applyFilters()" title="Tanggal Selesai" class="w-full rounded-lg border-purple-900/50 text-xs bg-[#0f051d]/90 text-slate-200 focus:bg-[#0f051d] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-2 border">
                 </div>
             </div>
         </section>
@@ -474,78 +456,12 @@
         <p>© 2026 Monitoring Sambungan Rumah (SR) Water Utility Dashboard. All Rights Reserved.</p>
     </footer>
 
-    <!-- MODAL 0: KONFIGURASI GOOGLE SHEETS AUTO-SYNC -->
-    <div id="sheetConfigModal" class="fixed inset-0 bg-[#0f051d]/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-[#170b2c] rounded-xl shadow-2xl border border-purple-900/60 w-full max-w-xl overflow-hidden text-slate-200">
-            <div class="p-4 bg-purple-950 text-white flex items-center justify-between border-b border-purple-900/60">
-                <h3 class="font-bold text-sm flex items-center gap-2">
-                    <i data-lucide="table-2" class="w-4 h-4 text-emerald-400"></i> Konfigurasi Sinkronisasi Otomatis Google Sheets
-                </h3>
-                <button onclick="closeSheetConfigModal()" class="text-purple-300/60 hover:text-white transition-colors">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-
-            <div class="p-5 space-y-4 text-xs">
-                <div class="bg-emerald-950/40 border border-emerald-800/50 p-3 rounded-lg space-y-1.5">
-                    <p class="font-semibold text-emerald-300 flex items-center gap-1.5">
-                        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i> Otomatis Konversi Link Publish Google Sheets:
-                    </p>
-                    <p class="text-purple-200/80 leading-relaxed">
-                        Sistem otomatis mengubah tautan <code class="bg-[#0f051d] px-1 rounded text-emerald-300">/pubhtml</code> Google Sheets Anda menjadi endpoint data CSV langsung (<code class="bg-[#0f051d] px-1 rounded text-emerald-300">/pub?output=csv</code>) agar dapat dibaca secara real-time.
-                    </p>
-                </div>
-
-                <div>
-                    <label class="block font-semibold text-purple-200 mb-1.5">Tautan Google Sheets (Publish to Web) <span class="text-emerald-400">*</span></label>
-                    <input type="url" id="inputSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/e/.../pubhtml" class="w-full rounded-lg border-purple-900/60 bg-[#0f051d] py-2.5 px-3 border focus:ring-2 focus:ring-emerald-500 text-slate-200">
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block font-semibold text-purple-200 mb-1.5">Metode Koneksi</label>
-                        <select id="selectFetchMode" class="w-full rounded-lg border-purple-900/60 bg-[#0f051d] py-2 px-3 border focus:ring-2 focus:ring-emerald-500 text-slate-200">
-                            <option value="direct">Direct Fetch (Disarankan untuk Google Sheets)</option>
-                            <option value="allorigins">Via AllOrigins Proxy (Cadangan)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block font-semibold text-purple-200 mb-1.5">Interval Auto-Refresh</label>
-                        <select id="selectAutoRefreshInterval" class="w-full rounded-lg border-purple-900/60 bg-[#0f051d] py-2 px-3 border focus:ring-2 focus:ring-emerald-500 text-slate-200">
-                            <option value="0">Hanya saat halaman dibuka</option>
-                            <option value="30000">Setiap 30 Detik</option>
-                            <option value="60000" selected>Setiap 1 Menit</option>
-                            <option value="300000">Setiap 5 Menit</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="pt-1">
-                    <label class="block font-semibold text-purple-200 mb-1">Preview Endpoint CSV Hasil Konversi:</label>
-                    <div id="previewConvertedUrl" class="p-2.5 bg-[#0f051d] border border-purple-900/50 rounded-lg text-[11px] text-emerald-300/80 break-all font-mono">
-                        -
-                    </div>
-                </div>
-            </div>
-
-            <div class="p-4 bg-[#0f051d] border-t border-purple-900/60 flex justify-between items-center">
-                <button onclick="resetSheetDefault()" class="text-xs text-purple-300/60 hover:text-purple-200 underline">Kembalikan Link Default</button>
-                <div class="flex gap-2">
-                    <button onclick="closeSheetConfigModal()" class="px-4 py-2 text-xs font-medium text-purple-300/70 hover:text-slate-200">Batal</button>
-                    <button onclick="saveSheetConfig()" class="px-4 py-2 text-xs font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-lg shadow-md">
-                        Simpan & Sinkronkan Sekarang
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- MODAL 1: UPLOAD EXCEL -->
     <div id="uploadModal" class="fixed inset-0 bg-[#0f051d]/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
         <div class="bg-[#170b2c] rounded-xl shadow-2xl border border-purple-900/60 w-full max-w-2xl overflow-hidden transition-all transform scale-95 opacity-0 text-slate-200" id="uploadModalContent">
             <div class="p-4 bg-purple-950 text-white flex items-center justify-between border-b border-purple-900/60">
                 <h3 class="font-bold text-sm flex items-center gap-2">
-                    <i data-lucide="file-up" class="w-4 h-4 text-purple-400"></i> Import Data dari File Excel (.xlsx / .xls / .csv)
+                    <i data-lucide="file-up" class="w-4 h-4 text-purple-400"></i> Import Data dari File Excel (.xlsx / .xls)
                 </h3>
                 <button onclick="closeUploadModal()" class="text-purple-300/60 hover:text-white transition-colors">
                     <i data-lucide="x" class="w-5 h-5"></i>
@@ -556,8 +472,8 @@
                 <div id="dropZone" onclick="document.getElementById('excelFileInput').click()" class="border-2 border-dashed border-purple-700/60 hover:border-purple-500 bg-purple-950/30 hover:bg-purple-950/50 p-8 rounded-xl text-center cursor-pointer transition-all flex flex-col items-center justify-center">
                     <i data-lucide="upload-cloud" class="w-12 h-12 text-purple-400 mb-2"></i>
                     <p class="text-xs font-semibold text-slate-200">Klik untuk memilih file atau seret file ke sini</p>
-                    <p class="text-[11px] text-purple-300/60 mt-1">Mendukung format Excel .xlsx, .xls, dan .csv</p>
-                    <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileSelect(event)">
+                    <p class="text-[11px] text-purple-300/60 mt-1">Mendukung format Excel .xlsx dan .xls</p>
+                    <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="handleFileSelect(event)">
                 </div>
 
                 <div id="uploadPreviewBox" class="hidden bg-[#0f051d]/70 border border-purple-900/50 p-4 rounded-lg space-y-3">
@@ -705,259 +621,6 @@
         Chart.defaults.color = '#c084fc';
         Chart.defaults.borderColor = 'rgba(76, 29, 149, 0.3)';
 
-        // =========================================================================
-        // KONFIGURASI GOOGLE SHEETS LIVE SYNC (CSV ENDPOINT)
-        // =========================================================================
-        const DEFAULT_GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTa503Ts4hdKyEK9btQlddhasFBWPEcMETuajPNbFMG8bb03bZzNJ3j2ToHi0DajNC2L7JEjOxMtR9D/pubhtml";
-        
-        let sheetConfig = {
-            shareUrl: localStorage.getItem('sl_gsheet_url') || DEFAULT_GOOGLE_SHEET_URL,
-            fetchMode: localStorage.getItem('sl_gsheet_mode') || 'direct',
-            refreshInterval: parseInt(localStorage.getItem('sl_gsheet_interval') || '60000')
-        };
-        let autoRefreshTimer = null;
-
-        /**
-         * Mengubah tautan Google Sheets /pubhtml menjadi /pub?output=csv secara otomatis
-         */
-        function convertGoogleSheetToCsvUrl(url) {
-            if (!url) return "";
-            let cleanUrl = url.trim();
-
-            // Jika tautan adalah /pubhtml, ganti menjadi /pub?output=csv
-            if (cleanUrl.includes('/pubhtml')) {
-                cleanUrl = cleanUrl.replace('/pubhtml', '/pub');
-                const separator = cleanUrl.includes('?') ? '&' : '?';
-                return `${cleanUrl}${separator}output=csv`;
-            }
-
-            // Jika sudah /pub tetapi belum ada output=csv
-            if (cleanUrl.includes('/pub') && !cleanUrl.includes('output=csv')) {
-                const separator = cleanUrl.includes('?') ? '&' : '?';
-                return `${cleanUrl}${separator}output=csv`;
-            }
-
-            // Jika tautan standar /edit#gid=...
-            if (cleanUrl.includes('/edit')) {
-                return cleanUrl.replace(/\/edit.*$/, '/export?format=csv');
-            }
-
-            return cleanUrl;
-        }
-
-        function buildFetchUrl(csvUrl, fetchMode) {
-            const separator = csvUrl.includes('?') ? '&' : '?';
-            const freshCsvUrl = `${csvUrl}${separator}t=${Date.now()}`;
-
-            if (fetchMode === 'allorigins') {
-                return `https://api.allorigins.win/raw?url=${encodeURIComponent(freshCsvUrl)}`;
-            }
-            return freshCsvUrl;
-        }
-
-        function showSyncBanner(message, type = 'info') {
-            const banner = document.getElementById('syncStatusBanner');
-            const bannerText = document.getElementById('syncStatusBannerText');
-            banner.classList.remove('hidden', 'bg-purple-950/90', 'bg-red-950/90', 'bg-emerald-950/90', 'border-red-800', 'border-emerald-800');
-            
-            if (type === 'error') {
-                banner.classList.add('bg-red-950/90', 'border-red-800', 'text-red-200');
-            } else if (type === 'success') {
-                banner.classList.add('bg-emerald-950/90', 'border-emerald-800', 'text-emerald-200');
-            } else {
-                banner.classList.add('bg-purple-950/90', 'border-purple-800/60', 'text-purple-200');
-            }
-            
-            bannerText.innerText = message;
-            if (type === 'success') {
-                setTimeout(() => { banner.classList.add('hidden'); }, 4000);
-            }
-        }
-
-        /**
-         * Menarik data dari Google Sheets CSV dan mem-parsingnya menggunakan SheetJS
-         */
-        async function syncFromGoogleSheets(isManual = false) {
-            const btn = document.getElementById('btnSyncCloud');
-            const icon = document.getElementById('iconSyncCloud');
-            const statusText = document.getElementById('lastUpdateText');
-
-            if (!sheetConfig.shareUrl) {
-                if (isManual) openSheetConfigModal();
-                return;
-            }
-
-            try {
-                btn.disabled = true;
-                icon.classList.add('animate-spin-sync');
-                statusText.innerText = "Menyinkronkan Google Sheets...";
-                if (isManual) showSyncBanner("Mengambil data terbaru dari Google Sheets...", "info");
-
-                const csvUrl = convertGoogleSheetToCsvUrl(sheetConfig.shareUrl);
-                const modesToTry = [sheetConfig.fetchMode, 'direct', 'allorigins']
-                    .filter((v, i, a) => a.indexOf(v) === i);
-
-                let csvText = null;
-                let lastError = null;
-
-                for (const mode of modesToTry) {
-                    try {
-                        const targetUrl = buildFetchUrl(csvUrl, mode);
-                        const response = await fetch(targetUrl);
-                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                        
-                        const text = await response.text();
-                        // Pastikan respons bukan halaman HTML error/login
-                        if (text.trim().startsWith('<!DOCTYPE html>') || text.trim().startsWith('<html')) {
-                            throw new Error("Respons berupa halaman HTML, bukan CSV.");
-                        }
-
-                        csvText = text;
-                        break;
-                    } catch (err) {
-                        lastError = err;
-                        console.warn(`Percobaan via mode [${mode}] gagal:`, err.message);
-                    }
-                }
-
-                if (!csvText) {
-                    throw lastError || new Error("Gagal terhubung ke Google Sheets.");
-                }
-
-                // Parse string CSV menjadi JSON menggunakan SheetJS
-                const workbook = XLSX.read(csvText, { type: 'string' });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonRows = XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
-
-                if (jsonRows.length === 0) {
-                    throw new Error("Data pada Google Sheets kosong atau header tidak terbaca.");
-                }
-
-                const mappedData = mapRowsToDataset(jsonRows);
-                mainDataset = mappedData;
-
-                populateFilterOptions();
-                applyFilters();
-                updateLastTimestamp(true);
-                
-                if (isManual) {
-                    showSyncBanner(`Berhasil menyinkronkan ${mainDataset.length} data SR dari Google Sheets!`, "success");
-                } else {
-                    document.getElementById('syncStatusBanner').classList.add('hidden');
-                }
-
-            } catch (error) {
-                console.error("Google Sheets Sync Error:", error);
-                statusText.innerText = "Gagal Sinkron (Data Lokal)";
-                const isLocalFile = window.location.protocol === 'file:';
-                const extraHint = isLocalFile 
-                    ? " (Catatan: Anda membuka file via file://, gunakan VS Code Live Server / GitHub Pages agar akses internet tidak diblokir browser)" 
-                    : "";
-                showSyncBanner(`Sinkronisasi gagal: ${error.message}${extraHint}`, "error");
-            } finally {
-                btn.disabled = false;
-                icon.classList.remove('animate-spin-sync');
-            }
-        }
-
-        function mapRowsToDataset(jsonRows) {
-            return jsonRows
-                .filter(row => {
-                    // Abaikan baris yang benar-benar kosong
-                    return Object.values(row).some(val => String(val).trim() !== "");
-                })
-                .map((row, idx) => {
-                    const getVal = (keys) => {
-                        for (let k of keys) {
-                            const found = Object.keys(row).find(rk => rk.toLowerCase().trim() === k.toLowerCase());
-                            if (found && row[found] !== undefined) return row[found];
-                        }
-                        return "";
-                    };
-
-                    let rawStatus = String(getVal(["STATUS PEKERJAAN", "STATUS"])).toUpperCase().trim();
-                    if (!["DONE", "PENDING", "CANCEL"].includes(rawStatus)) {
-                        rawStatus = rawStatus ? rawStatus : "PENDING";
-                    }
-
-                    return {
-                        no: idx + 1,
-                        faId: String(getVal(["FA ID", "FA_ID", "FAID", "NO FA", "ID"])).trim(),
-                        nama: String(getVal(["NAMA PELANGGAN", "NAMA", "PELANGGAN"])).trim(),
-                        alamat: String(getVal(["ALAMAT LENGKAP", "ALAMAT"])).trim(),
-                        kelurahan: String(getVal(["KELURAHAN", "KEL"])).trim(),
-                        noHp: String(getVal(["NO HP PELANGGAN", "NO HP", "TELP", "HP", "NO_HP"])).trim(),
-                        subkon: String(getVal(["SUBKON", "SUBKONTRAKTOR"])).trim(),
-                        jenis: String(getVal(["JENIS PEKERJAAN", "JENIS"])).trim(),
-                        ab: String(getVal(["AB", "AREA BISNIS"])).trim(),
-                        rencanaTgl: parseExcelDate(getVal(["RENCANA TGL KERJA", "RENCANA TGL", "TGL RENCANA", "TANGGAL", "TGL"])),
-                        tglDikerjakan: parseExcelDate(getVal(["TANGGAL DIKERJAKAN", "TGL DIKERJAKAN", "TGL SELESAI", "TANGGAL SELESAI"])),
-                        status: rawStatus,
-                        keterangan: String(getVal(["KETERANGAN", "KET", "ALASAN", "KENDALA", "CATATAN", "KETERANGAN / KENDALA", "ALASAN KENDALA"])).trim()
-                    };
-                });
-        }
-
-        function setupAutoRefreshTimer() {
-            if (autoRefreshTimer) clearInterval(autoRefreshTimer);
-            if (sheetConfig.refreshInterval > 0) {
-                autoRefreshTimer = setInterval(() => {
-                    syncFromGoogleSheets(false);
-                }, sheetConfig.refreshInterval);
-            }
-        }
-
-        // Modal Konfigurasi Google Sheets Handlers
-        function openSheetConfigModal() {
-            document.getElementById('inputSheetUrl').value = sheetConfig.shareUrl;
-            document.getElementById('selectFetchMode').value = sheetConfig.fetchMode;
-            document.getElementById('selectAutoRefreshInterval').value = String(sheetConfig.refreshInterval);
-            updateConvertedUrlPreview();
-            document.getElementById('sheetConfigModal').classList.remove('hidden');
-        }
-
-        function closeSheetConfigModal() {
-            document.getElementById('sheetConfigModal').classList.add('hidden');
-        }
-
-        function updateConvertedUrlPreview() {
-            const urlVal = document.getElementById('inputSheetUrl').value;
-            document.getElementById('previewConvertedUrl').innerText = convertGoogleSheetToCsvUrl(urlVal) || "-";
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const urlInput = document.getElementById('inputSheetUrl');
-            if (urlInput) urlInput.addEventListener('input', updateConvertedUrlPreview);
-        });
-
-        function saveSheetConfig() {
-            const newUrl = document.getElementById('inputSheetUrl').value.trim();
-            const newMode = document.getElementById('selectFetchMode').value;
-            const newInterval = parseInt(document.getElementById('selectAutoRefreshInterval').value);
-
-            sheetConfig.shareUrl = newUrl;
-            sheetConfig.fetchMode = newMode;
-            sheetConfig.refreshInterval = newInterval;
-
-            localStorage.setItem('sl_gsheet_url', newUrl);
-            localStorage.setItem('sl_gsheet_mode', newMode);
-            localStorage.setItem('sl_gsheet_interval', String(newInterval));
-
-            setupAutoRefreshTimer();
-            closeSheetConfigModal();
-            syncFromGoogleSheets(true);
-        }
-
-        function resetSheetDefault() {
-            document.getElementById('inputSheetUrl').value = DEFAULT_GOOGLE_SHEET_URL;
-            document.getElementById('selectFetchMode').value = 'direct';
-            document.getElementById('selectAutoRefreshInterval').value = '60000';
-            updateConvertedUrlPreview();
-        }
-
-        // =========================================================================
-        // PARSER TANGGAL & DATASET DEFAULT
-        // =========================================================================
         function parseExcelDate(val) {
             if (!val) return "";
             if (typeof val === 'number') {
@@ -1008,20 +671,16 @@
 
         window.onload = function() {
             lucide.createIcons();
+            updateLastTimestamp();
             populateFilterOptions();
             applyFilters();
-            
-            // Otomatis tarik data dari Google Sheets saat dashboard dibuka
-            syncFromGoogleSheets(false);
-            setupAutoRefreshTimer();
         };
 
-        function updateLastTimestamp(fromCloud = false) {
+        function updateLastTimestamp() {
             const now = new Date();
             const dateStr = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-            const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            const prefix = fromCloud ? "Sheets Live: " : "";
-            document.getElementById('lastUpdateText').innerText = `${prefix}${dateStr}, ${timeStr} WIB`;
+            const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('lastUpdateText').innerText = `${dateStr}, ${timeStr} WIB`;
         }
 
         function switchTab(tabName) {
@@ -1057,17 +716,37 @@
             const kelurahans = [...new Set(mainDataset.map(d => d.kelurahan).filter(Boolean))].sort();
             const jenisPekerjaans = [...new Set(mainDataset.map(d => d.jenis).filter(Boolean))].sort();
             const abs = [...new Set(mainDataset.map(d => d.ab).filter(Boolean))].sort();
+            const kendalas = [...new Set(mainDataset.map(d => (d.keterangan || '').trim()).filter(Boolean))].sort();
 
             fillSelect('filterSubkon', subkons, 'Semua Subkon');
             fillSelect('filterKelurahan', kelurahans, 'Semua Kelurahan');
             fillSelect('filterJenisPekerjaan', jenisPekerjaans, 'Semua Jenis Pekerjaan');
             fillSelect('filterAB', abs, 'Semua AB');
+            fillKendalaSelect(kendalas);
         }
 
         function fillSelect(elementId, items, defaultLabel) {
             const select = document.getElementById(elementId);
             const currentVal = select.value;
             select.innerHTML = `<option value="">${defaultLabel}</option>`;
+            items.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item;
+                opt.textContent = item;
+                opt.className = "bg-[#170b2c] text-slate-200";
+                select.appendChild(opt);
+            });
+            select.value = currentVal;
+        }
+
+        function fillKendalaSelect(items) {
+            const select = document.getElementById('filterKendala');
+            const currentVal = select.value;
+            select.innerHTML = `
+                <option value="">Semua Kendala / Keterangan</option>
+                <option value="__HAS_KENDALA__" class="bg-[#170b2c] text-purple-300 font-semibold">-- Ada Kendala / Keterangan --</option>
+                <option value="__NO_KENDALA__" class="bg-[#170b2c] text-slate-400">-- Tanpa Keterangan --</option>
+            `;
             items.forEach(item => {
                 const opt = document.createElement('option');
                 opt.value = item;
@@ -1085,20 +764,33 @@
             const status = document.getElementById('filterStatus').value;
             const jenis = document.getElementById('filterJenisPekerjaan').value;
             const ab = document.getElementById('filterAB').value;
+            const kendala = document.getElementById('filterKendala').value;
             const tglMulai = document.getElementById('filterTglMulai').value;
             const tglSelesai = document.getElementById('filterTglSelesai').value;
 
             filteredData = mainDataset.filter(item => {
+                const ketText = (item.keterangan || '').trim();
+
                 const matchesSearch = !search ||
                     (item.faId && item.faId.toLowerCase().includes(search)) ||
                     (item.nama && item.nama.toLowerCase().includes(search)) ||
-                    (item.alamat && item.alamat.toLowerCase().includes(search));
+                    (item.alamat && item.alamat.toLowerCase().includes(search)) ||
+                    (ketText && ketText.toLowerCase().includes(search));
 
                 const matchesSubkon = !subkon || item.subkon === subkon;
                 const matchesKelurahan = !kelurahan || item.kelurahan === kelurahan;
                 const matchesStatus = !status || item.status === status;
                 const matchesJenis = !jenis || item.jenis === jenis;
                 const matchesAB = !ab || item.ab === ab;
+
+                let matchesKendala = true;
+                if (kendala === '__HAS_KENDALA__') {
+                    matchesKendala = ketText !== '';
+                } else if (kendala === '__NO_KENDALA__') {
+                    matchesKendala = ketText === '';
+                } else if (kendala) {
+                    matchesKendala = ketText === kendala;
+                }
 
                 let matchesDate = true;
                 if (item.rencanaTgl) {
@@ -1113,7 +805,7 @@
                     matchesDate = false;
                 }
 
-                return matchesSearch && matchesSubkon && matchesKelurahan && matchesStatus && matchesJenis && matchesAB && matchesDate;
+                return matchesSearch && matchesSubkon && matchesKelurahan && matchesStatus && matchesJenis && matchesAB && matchesKendala && matchesDate;
             });
 
             currentPage = 1;
@@ -1132,6 +824,7 @@
             document.getElementById('filterStatus').value = '';
             document.getElementById('filterJenisPekerjaan').value = '';
             document.getElementById('filterAB').value = '';
+            document.getElementById('filterKendala').value = '';
             document.getElementById('filterTglMulai').value = '';
             document.getElementById('filterTglSelesai').value = '';
             applyFilters();
@@ -1295,13 +988,11 @@
             const weeklyMap = {};
             filteredData.filter(d => d.status === 'DONE' && d.tglDikerjakan).forEach(d => {
                 const dateObj = new Date(d.tglDikerjakan);
-                if (!isNaN(dateObj)) {
-                    const firstDayOfYear = new Date(dateObj.getFullYear(), 0, 1);
-                    const pastDaysOfYear = (dateObj - firstDayOfYear) / 86400000;
-                    const weekNum = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-                    const weekKey = `Minggu ${weekNum}`;
-                    weeklyMap[weekKey] = (weeklyMap[weekKey] || 0) + 1;
-                }
+                const firstDayOfYear = new Date(dateObj.getFullYear(), 0, 1);
+                const pastDaysOfYear = (dateObj - firstDayOfYear) / 86400000;
+                const weekNum = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+                const weekKey = `Minggu ${weekNum}`;
+                weeklyMap[weekKey] = (weeklyMap[weekKey] || 0) + 1;
             });
 
             const weekLabels = Object.keys(weeklyMap).sort();
@@ -1711,7 +1402,31 @@
                         return;
                     }
 
-                    parsedExcelRows = mapRowsToDataset(jsonRows);
+                    parsedExcelRows = jsonRows.map((row, idx) => {
+                        const getVal = (keys) => {
+                            for (let k of keys) {
+                                const found = Object.keys(row).find(rk => rk.toLowerCase().trim() === k.toLowerCase());
+                                if (found && row[found] !== undefined) return row[found];
+                            }
+                            return "";
+                        };
+
+                        return {
+                            no: idx + 1,
+                            faId: String(getVal(["FA ID", "FA_ID", "FAID", "NO FA"])).trim(),
+                            nama: String(getVal(["NAMA PELANGGAN", "NAMA", "PELANGGAN"])).trim(),
+                            alamat: String(getVal(["ALAMAT LENGKAP", "ALAMAT"])).trim(),
+                            kelurahan: String(getVal(["KELURAHAN", "KEL"])).trim(),
+                            noHp: String(getVal(["NO HP PELANGGAN", "NO HP", "TELP", "HP"])).trim(),
+                            subkon: String(getVal(["SUBKON", "SUBKONTRAKTOR"])).trim(),
+                            jenis: String(getVal(["JENIS PEKERJAAN", "JENIS"])).trim(),
+                            ab: String(getVal(["AB", "AREA BISNIS"])).trim(),
+                            rencanaTgl: parseExcelDate(getVal(["RENCANA TGL KERJA", "RENCANA TGL", "TGL RENCANA", "TANGGAL", "TGL"])),
+                            tglDikerjakan: parseExcelDate(getVal(["TANGGAL DIKERJAKAN", "TGL DIKERJAKAN", "TGL SELESAI", "TANGGAL SELESAI"])),
+                            status: String(getVal(["STATUS PEKERJAAN", "STATUS"])).toUpperCase().trim() || "PENDING",
+                            keterangan: String(getVal(["KETERANGAN", "KET", "ALASAN", "KENDALA", "CATATAN"])).trim()
+                        };
+                    });
 
                     document.getElementById('previewFileName').innerText = file.name;
                     document.getElementById('previewRowCount').innerText = `${parsedExcelRows.length} baris data berhasil dibaca`;
@@ -1753,7 +1468,7 @@
             applyFilters();
             updateLastTimestamp();
             closeUploadModal();
-            alert(`Berhasil mengimpor ${parsedExcelRows.length} data!`);
+            alert(`Berhasil mengimpor ${parsedExcelRows.length} data Excel!`);
         }
 
         function exportDataToExcel() {
