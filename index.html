@@ -50,7 +50,6 @@ function parseCSVToDataset(csvText) {
         row.push(currentVal.trim().replace(/^"|"$/g, ''));
 
         // Mapping baris CSV ke struktur data dashboard Anda
-        // Sesuaikan indeks kolom (0, 1, 2, dst.) dengan urutan kolom di Spreadsheet Anda
         let item = {
             no: i,
             faId: row[1] || `FA-${1000 + i}`,
